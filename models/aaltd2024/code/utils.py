@@ -5,6 +5,7 @@
 
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 
 # == stratified split ==========================================================
 
@@ -38,7 +39,7 @@ def stratified_split(Y, validation_size, seed = None):
 
 # == Dataset ===================================================================
 
-class Dataset():
+class Dataset(DataLoader):
 
     def __init__(self, X, Y, batch_size = 256, shuffle = True, **kwargs):
 
@@ -153,7 +154,7 @@ class Dataset():
 
         return self._mmap_Y[self._indices]
 
-class BatchDataset():
+class BatchDataset(DataLoader):
 
     def __init__(self, X, Y, batch_size = 256, shuffle = True, **kwargs):
 

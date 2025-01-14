@@ -272,9 +272,19 @@ class RidgeClassifier():
     def predict_proba(self, data):
 
         predictions = []
-        for X, Y in tqdm(data, total = np.ceil(data.shape[0] / data.batch_size), disable = not self.verbose):
-            predictions.append(
-                softmax ( self._predict(X) , dim=-1).cpu().numpy()
-            )
+        if isinstance(data, torch.utils.data.DataLoader):
+            for X, Y in tqdm(data, total = np.ceil(data.shape[0] / data.batch_size), disable = not self.verbose):
+                    predictions.append(
+                        softmax ( self._predict(X) , dim=-1).cpu().numpy()
+                    )
+            predictions = np.concatenate(predictions)
 
-        return np.concatenate(predictions)
+        elif isinstance(data, np.ndarray):
+            # TODO avoid conversion to np.ndarray then back to torch.Tensor etc.?
+            #data = data.detach().cpu().numpy()
+            predictions =  softmax ( self._predict(data) , dim=-1).cpu().numpy()
+
+        else:
+            raise TypeError("data type not supported")
+
+        return predictions

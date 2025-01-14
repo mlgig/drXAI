@@ -108,6 +108,11 @@ class IntervalModel():
     
 # == quant =====================================================================
 
+def id_f(X):        return  X
+def avg_pool_f(X):    return  F.avg_pool1d(F.pad(X.diff(), (2, 2), "replicate"), 5, 1)
+def diff_f(X):        return  X.diff(n = 2)
+def fft_f(X):         return torch.fft.rfft(X).abs()
+
 class Quant():
 
     def __init__(self, depth = 6, div = 4):
@@ -120,10 +125,10 @@ class Quant():
 
         self.representation_functions = \
         (
-            lambda X : X,
-            lambda X : F.avg_pool1d(F.pad(X.diff(), (2, 2), "replicate"), 5, 1),
-            lambda X : X.diff(n = 2),
-            lambda X : torch.fft.rfft(X).abs(),
+            id_f,       #lambda X : X
+            avg_pool_f, #lambda X : F.avg_pool1d(F.pad(X.diff(), (2, 2), "replicate"), 5, 1),
+            diff_f,     #lambda X : X.diff(n = 2),
+            fft_f       #lambda X : torch.fft.rfft(X).abs(),
         )
 
         self.models = {}
@@ -262,8 +267,14 @@ class QuantClassifier():
     def predict_proba(self,data):
 
         pred_probas = []
-        for i, (X, _) in enumerate(data):
-            Z = self.transform.transform(torch.tensor(X.astype(np.float32)))
-            pred_probas.append(self.classifier.predict_proba(Z))
+        if isinstance(data,torch.utils.data.DataLoader):
+            for i, (X, _) in enumerate(data):
+                Z = self.transform.transform(torch.tensor(X.astype(np.float32)))
+                pred_probas.append(self.classifier.predict_proba(Z))
+            pred_probas = np.concatenate(pred_probas, axis=0)
 
-        return np.concatenate(pred_probas, axis=0)
+        elif isinstance(data,np.ndarray):
+            Z = self.transform.transform(torch.tensor(data.astype(np.float32)))
+            pred_probas = self.classifier.predict_proba(Z)
+
+        return pred_probas
