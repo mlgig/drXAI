@@ -21,9 +21,10 @@ default_hyperparams = {
 	'gpu': 0,  'console': False, 'output_dir': 'Results/Dataset/UEA/',
 }
 
-def build_ConvTran_model(config,shape, n_labels, device="cuda", float16=False):
+def build_ConvTran_model(config,shape, n_labels, device="cuda", float16=False, verbose=False):
 	# TODO verbose flag?
-	logger.info("Creating model ...")
+	if verbose:
+		logger.info("Creating model ...")
 	config['Data_shape'] = shape
 	config['num_labels'] = n_labels
 	if float16:
@@ -31,8 +32,9 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", float16=False):
 		config['batch_size']=1
 
 	model = model_factory(config)
-	logger.info("Model:\n{}".format(model))
-	logger.info("Total number of parameters: {}".format(count_parameters(model)))
+	if verbose:
+		logger.info("Model:\n{}".format(model))
+		logger.info("Total number of parameters: {}".format(count_parameters(model)))
 	# -------------------------------------------- Model Initialization ------------------------------------
 	optim_class = get_optimizer("RAdam")
 	config['optimizer'] = optim_class(model.parameters(), lr=config['lr'], weight_decay=0)
@@ -42,7 +44,7 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", float16=False):
 	return model
 
 
-def build_train_ConvTran(train_loader,val_loader, dev_dataset, save_path=None):
+def build_train_ConvTran(train_loader,val_loader, dev_dataset, save_path=None, verbose=False):
 	# TODO save the tensorboard writer?
 	#tensorboard_writer = SummaryWriter('summary')
 	# get basic info and build the initial model
@@ -50,21 +52,24 @@ def build_train_ConvTran(train_loader,val_loader, dev_dataset, save_path=None):
 	device = "cuda" if is_gpu_available else "cpu"
 	shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
 
-	model = build_ConvTran_model(default_hyperparams, shape , n_labels, device=device, float16=to_half)
+	model = build_ConvTran_model(default_hyperparams, shape , n_labels, device=device, float16=to_half, verbose=verbose)
 	# ---------------------------------------------- Validating The Model ------------------------------------
-	logger.info('Starting training...')
+	if verbose:
+		logger.info('Starting training...')
 
 	# once get the SupervisedTrainer classes we can now train the model
 	trainer = SupervisedTrainer(model, train_loader, device, default_hyperparams['loss_module'],
 			default_hyperparams['optimizer'], l2_reg=0,print_interval=default_hyperparams['print_interval'],
 				console=default_hyperparams['console'],print_conf_mat=False)
+
 	val_evaluator = SupervisedTrainer(model, val_loader, device, default_hyperparams['loss_module'],
 			print_interval=default_hyperparams['print_interval'], console=default_hyperparams['console'],
 									  print_conf_mat=False)
-	best_n_epochs, model = train_runner(default_hyperparams, model, trainer, save_path, val_evaluator=val_evaluator)
+
+	best_n_epochs, model = train_runner(default_hyperparams, model, trainer, save_path, val_evaluator=val_evaluator,
+										verbose=verbose)
 
 	# clean what used for validation
-	import torch
 	del train_loader  ; del val_loader; del model
 	empty_gpu_cache()
 	# ---------------------------------------------- Final Training ------------------------------------
@@ -83,6 +88,6 @@ def build_train_ConvTran(train_loader,val_loader, dev_dataset, save_path=None):
 									  print_conf_mat=False)
 
 	# actually train the final model here
-	_, final_model = train_runner(final_default_hyperparams, final_model, final_trainer, save_path)
+	_, final_model = train_runner(final_default_hyperparams, final_model, final_trainer, save_path, verbose=verbose)
 
 	return final_model, final_default_hyperparams

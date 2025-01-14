@@ -168,7 +168,7 @@ class SupervisedTrainer(BaseTrainer):
         return self.epoch_metrics, metrics_dict
 
 
-def validate(val_evaluator, tensorboard_writer, config, best_metrics, best_value, epoch):
+def validate(val_evaluator, tensorboard_writer, config, best_metrics, best_value, epoch, verbose=False):
     """Run an evaluation on the validation set while logging metrics, and handle outcome"""
 
     #logger.info("Evaluating on validation set ...")
@@ -193,7 +193,8 @@ def validate(val_evaluator, tensorboard_writer, config, best_metrics, best_value
     for k, v in aggr_metrics.items():
         tensorboard_writer.add_scalar('{}/val'.format(k), v, epoch)
         print_str += '{}: {:8f} | '.format(k, v)
-    logger.info(print_str)
+    if verbose:
+        logger.info(print_str)
 
     if config['key_metric'] in NEG_METRICS:
         condition = (aggr_metrics[config['key_metric']] < best_value)
@@ -210,7 +211,7 @@ def validate(val_evaluator, tensorboard_writer, config, best_metrics, best_value
     return aggr_metrics, best_metrics, best_value
 
 
-def train_runner(config, model, trainer, path, val_evaluator=None):
+def train_runner(config, model, trainer, path, val_evaluator=None, verbose=False):
     """
     train modified in such a way we are using the whole training set
     After a validation (only used for selecting n_epochs) perform training using the whole train set
@@ -249,9 +250,11 @@ def train_runner(config, model, trainer, path, val_evaluator=None):
             for k, v in aggr_metrics_train.items():
                 tensorboard_writer.add_scalar('{}/train'.format(k), v, epoch)
                 print_str += '{}: {:8f} | '.format(k, v)
-            logger.info(print_str)
+            if verbose:
+                logger.info(print_str)
     if final_train and path!=None:
         utils.save_model(path, epoch, model, optimizer)
     total_runtime = time.time() - total_start_time
-    logger.info("Train Time: {} hours, {} minutes, {} seconds\n".format(*utils.readable_time(total_runtime)))
+    if verbose:
+        logger.info("Train Time: {} hours, {} minutes, {} seconds\n".format(*utils.readable_time(total_runtime)))
     return best_n_epochs, model

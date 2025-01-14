@@ -169,18 +169,28 @@ class ConvTran(nn.Module):
         return predictions
 
 
-    def predict_proba(self,test_loader):
-        scores = self._predict(test_loader)
-        probabilities = nn.functional.softmax(scores, dim=-1)
+    def predict_proba(self,data):
+        probabilities = None
+
+        with torch.no_grad():
+            if isinstance(data,torch.utils.data.Dataset ):
+                scores = self._predict(data)
+                probabilities = nn.functional.softmax(scores, dim=-1)
+
+            elif isinstance(data, np.ndarray):
+                data = torch.Tensor(data).to(self.device)
+                scores = self.forward(data)
+                probabilities = nn.functional.softmax(scores, dim=-1)
+
         return probabilities.cpu().numpy()
 
-    def predict(self,test_loader):
-        predictions = self._predict(test_loader).argmax(axis=1).cpu().numpy()
+    def predict(self,data):
+        predictions = self._predict(data).argmax(axis=1).cpu().numpy()
         return predictions
 
-    def score(self,test_loader):
-        predictions = self._predict(test_loader).argmax(axis=1).cpu().numpy()
-        labels = test_loader.dataset.labels
+    def score(self,data):
+        predictions = self._predict(data).argmax(axis=1).cpu().numpy()
+        labels = data.dataset.labels
         accuracy = (predictions==labels).sum() / predictions.shape[0]
         return accuracy
 
