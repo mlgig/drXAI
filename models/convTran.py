@@ -21,15 +21,12 @@ default_hyperparams = {
 	'gpu': 0,  'console': False, 'output_dir': 'Results/Dataset/UEA/',
 }
 
-def build_ConvTran_model(config,shape, n_labels, device="cuda", float16=False, verbose=False):
+def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
 	# TODO verbose flag?
 	if verbose:
 		logger.info("Creating model ...")
 	config['Data_shape'] = shape
 	config['num_labels'] = n_labels
-	if float16:
-		config['lr']/=10
-		config['batch_size']=1
 
 	model = model_factory(config)
 	if verbose:
@@ -39,8 +36,8 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", float16=False, v
 	optim_class = get_optimizer("RAdam")
 	config['optimizer'] = optim_class(model.parameters(), lr=config['lr'], weight_decay=0)
 	config['loss_module'] = get_loss_module()
-	model = model.half() if float16 else model
 	model.to(device)
+
 	return model
 
 
@@ -48,11 +45,10 @@ def build_train_ConvTran(train_loader,val_loader, dev_dataset, save_path=None, v
 	# TODO save the tensorboard writer?
 	#tensorboard_writer = SummaryWriter('summary')
 	# get basic info and build the initial model
-	to_half = True if train_loader.dataset.to_half else False
 	device = "cuda" if is_gpu_available else "cpu"
 	shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
 
-	model = build_ConvTran_model(default_hyperparams, shape , n_labels, device=device, float16=to_half, verbose=verbose)
+	model = build_ConvTran_model(default_hyperparams, shape , n_labels, device=device, verbose=verbose)
 	# ---------------------------------------------- Validating The Model ------------------------------------
 	if verbose:
 		logger.info('Starting training...')

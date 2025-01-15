@@ -5,7 +5,7 @@ import numpy as np
 from .ConvTran.utils import dataset_class
 
 
-def load_data_ConvTran(X_train, X_test, y_train, y_test, val_ratio=0.25, batch_size=16, to_half=False):
+def load_data_ConvTran(X_train, X_test, y_train, y_test, val_ratio=0.25, batch_size=16):
 
 	le = LabelEncoder()
 	y_train = le.fit_transform(y_train)
@@ -17,12 +17,10 @@ def load_data_ConvTran(X_train, X_test, y_train, y_test, val_ratio=0.25, batch_s
 	train_data, train_label, val_data, val_label = split_dataset(X_train, y_train,val_ratio)
 
 	# creating loaders
-	train_dataset = dataset_class(train_data, train_label,to_half)
-	val_dataset = dataset_class(val_data, val_label, to_half)
-	dev_dataset = dataset_class( X_train, y_train,to_half)
-	test_dataset = dataset_class(X_test,y_test, to_half)
-	if to_half:
-		batch_size=1
+	train_dataset = dataset_class(train_data, train_label)
+	val_dataset = dataset_class(val_data, val_label)
+	dev_dataset = dataset_class( X_train, y_train)
+	test_dataset = dataset_class(X_test,y_test)
 
 	train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 	val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)

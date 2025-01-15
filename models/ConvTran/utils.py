@@ -132,17 +132,16 @@ class dataset_class(Dataset):
     dataset class edited in such a way it's possible to use also float16
     """
 
-    def __init__(self, data, label, to_half=False):
+    def __init__(self, data, label):
         super(dataset_class, self).__init__()
 
         self.feature = data
         self.labels = label.astype(np.int32)
-        self.to_half = to_half
 
     def __getitem__(self, ind):
 
         x = self.feature[ind]
-        x = x.astype(np.float16 if self.to_half else np.float32)
+        x = x.astype(np.float32)
 
         y = self.labels[ind]  # (num_labels,) array
 
