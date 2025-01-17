@@ -436,7 +436,7 @@ class Analyzer(object):
             print('\n')
         if self.plot:
             plt.figure()
-            plot_confusion_matrix(ConfMatrix, self.existing_class_names)
+            metrics.plot_confusion_matrix(ConfMatrix, self.existing_class_names)
 
         # Normalize the confusion matrix by row (i.e by the number of samples in each class)
         self.ConfMatrix_normalized_row = ConfMatrix.astype('float') / ConfMatrix.sum(axis=1)[:, np.newaxis]
@@ -458,7 +458,7 @@ class Analyzer(object):
 
         # returns metrics for each class, in the same order as existing_class_names
         self.precision, self.recall, self.f1, self.support = metrics.precision_recall_fscore_support(y_true, y_pred,
-                                                                                                     labels=self.existing_class_ind)
+                                                                             labels=self.existing_class_ind,warn_for=[])
 
         # Print report
         if self.print_conf_mat:

@@ -41,11 +41,10 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
 	return model
 
 
-def build_train_ConvTran(train_loader,val_loader, dev_dataset, save_path=None, verbose=False):
+def build_train_ConvTran(train_loader,val_loader, dev_dataset, device, save_path=None, verbose=False):
 	# TODO save the tensorboard writer?
 	#tensorboard_writer = SummaryWriter('summary')
 	# get basic info and build the initial model
-	device = "cuda" if is_gpu_available else "cpu"
 	shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
 
 	model = build_ConvTran_model(default_hyperparams, shape , n_labels, device=device, verbose=verbose)

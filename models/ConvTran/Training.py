@@ -188,7 +188,6 @@ def validate(val_evaluator, tensorboard_writer, config, best_metrics, best_value
     #logger.info("Avg batch val. time: {} seconds".format(avg_val_batch_time))
     #logger.info("Avg sample val. time: {} seconds".format(avg_val_sample_time))
 
-    print()
     print_str = 'Validation Summary: '
     for k, v in aggr_metrics.items():
         tensorboard_writer.add_scalar('{}/val'.format(k), v, epoch)
@@ -219,6 +218,9 @@ def train_runner(config, model, trainer, path, val_evaluator=None, verbose=False
     """
 
     final_train = (val_evaluator==None)
+    print_str = '\nConvTran final train run:' if final_train else '\nConvTran validation run:'
+    logger.info(print_str)
+
     epochs = config['epochs']
     optimizer = config['optimizer']
     loss_module = config['loss_module']
@@ -240,8 +242,6 @@ def train_runner(config, model, trainer, path, val_evaluator=None, verbose=False
                                                                   best_value, epoch)
             if aggr_metrics_val['loss'] < best_loss:
                 best_loss = aggr_metrics_val['loss'] ; best_n_epochs = epoch
-            #save_best_model(aggr_metrics_val['loss'], epoch, model, optimizer, loss_module, path)
-            # save_best_acc_model(aggr_metrics_val['accuracy'], epoch, model, optimizer, loss_module, path)
 
             metrics_names, metrics_values = zip(*aggr_metrics_val.items())
             metrics.append(list(metrics_values))
@@ -252,9 +252,13 @@ def train_runner(config, model, trainer, path, val_evaluator=None, verbose=False
                 print_str += '{}: {:8f} | '.format(k, v)
             if verbose:
                 logger.info(print_str)
+
     if final_train and path!=None:
         utils.save_model(path, epoch, model, optimizer)
+
     total_runtime = time.time() - total_start_time
+
     if verbose:
         logger.info("Train Time: {} hours, {} minutes, {} seconds\n".format(*utils.readable_time(total_runtime)))
+
     return best_n_epochs, model
