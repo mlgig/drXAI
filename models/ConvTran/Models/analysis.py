@@ -447,7 +447,7 @@ class Analyzer(object):
             print('\n')
         if self.plot:
             plt.figure()
-            plot_confusion_matrix(self.ConfMatrix_normalized_row, label_strings=self.existing_class_names,
+            metrics.plot_confusion_matrix(self.ConfMatrix_normalized_row, label_strings=self.existing_class_names,
                                   title='Confusion matrix normalized by row')
 
             plt.show(block=False)
