@@ -5,9 +5,9 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader
 import numpy as np
 from models.ConvTran.utils import dataset_class
+import torch
 
-
-def load_datasets(dataset_dir_info, current_dataset ):
+def load_datasets(dataset_dir_info, current_dataset, explain_set_ratio ):
 
 	# get current dir's info # TODO might be deleted in the future
 	dir, dataset_dir = dataset_dir_info
@@ -17,11 +17,14 @@ def load_datasets(dataset_dir_info, current_dataset ):
 		'train_set' : {},
 		'explain_set' : {},
 		'test_set' : {}
+	} if explain_set_ratio>0 else {
+		'train_set' : {},
+		'test_set' : {}
 	}
 
 	# load data from hard drive
 	# TODO might be not necessary in the future
-	if dir == "Multivariate_ts/":
+	if dir == "Multivariate_ts/" or dir=='others_MTSCcom/':
 		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, current_dataset + "_TRAIN.ts"))
 		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, current_dataset + "_TEST.ts"))
 	elif dir == "others_new/":
@@ -30,16 +33,28 @@ def load_datasets(dataset_dir_info, current_dataset ):
 	else:
 		raise ValueError("dir not recognized")
 
+	X_train , X_test = np.stack(X_train), np.stack(X_test)
+
 	# split train into train and 'explaining set'
-	X_train, y_train, train_indices, X_explain, y_explain, val_indices = split_dataset(X_train,y_train,
-																					   validation_ratio=0.2,random_state=42)
-	data['train_set']['indices'] = train_indices	; data['explain_set']['indices'] = val_indices
-	data['train_set']['X'] = X_train;	data['explain_set']['X'] = X_explain;	data['test_set']['X'] = X_test
+	if explain_set_ratio > 0:
+		X_train, y_train, train_indices, X_explain, y_explain, val_indices = split_dataset(X_train,y_train,
+																	validation_ratio=explain_set_ratio,random_state=42)
+		data['train_set']['indices'] = train_indices	; data['explain_set']['indices'] = val_indices
+		data['explain_set']['X'] = X_explain;
+	else:
+		y_explain = None	; X_explain = torch.tensor([])
+
+	data['train_set']['X'] = X_train;		data['test_set']['X'] = X_test
 
 	# convert to numeric labels
 	y_train, y_test, y_explain,labels_map = to_numeric_labels(y_train, y_test, y_explain)
-	data['train_set']['y'] = y_train;	data['explain_set']['y'] = y_explain;	data['test_set']['y'] = y_test
 	data['labels_map'] = labels_map
+
+	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
+
+	if explain_set_ratio>0:
+		data['explain_set']['y'] = y_explain
+
 
 	print("loaded dataset",current_dataset, "train set is split into",X_train.shape[0] ," as training set," ,
 		  X_explain.shape[0], "as 'explain set'", X_explain.shape[0],". test's dimension are " ,X_test.shape  )
@@ -48,9 +63,10 @@ def load_datasets(dataset_dir_info, current_dataset ):
 
 def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=16):
 
+	explain_set = 'explain_set' in dataset.keys()
+
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
-	X_explain, y_explain =  dataset['explain_set']['X'] , dataset['explain_set']['y']
 	X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
 	# assuming equal length data
@@ -61,14 +77,19 @@ def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=16):
 	# creating loaders
 	train_dataset = dataset_class(train_data, train_label)
 	val_dataset = dataset_class(val_data, val_label)
-	explain_dataset = dataset_class(X_explain, y_explain)
 	dev_dataset = dataset_class( X_train, y_train)
 	test_dataset = dataset_class(X_test,y_test)
 
 	train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-	explain_loader = DataLoader(dataset=explain_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 	val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 	test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
+
+	if explain_set:
+		X_explain, y_explain =  dataset['explain_set']['X'] , dataset['explain_set']['y']
+		explain_dataset = dataset_class(X_explain, y_explain)
+		explain_loader = DataLoader(dataset=explain_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
+	else:
+		explain_loader = None
 
 	return train_loader, val_loader, dev_dataset, explain_loader, test_loader
 
@@ -87,11 +108,12 @@ def split_dataset(data, label, validation_ratio, random_state = None):
 	return train_data, train_label, train_indices[0] , val_data, val_label, val_indices[0]
 
 
-def to_numeric_labels(y_train, y_test, y_explain ):
+def to_numeric_labels(y_train, y_test, y_explain=None ):
 
 	# convert labels to idx
 	le = LabelEncoder()
 	y_train = le.fit_transform( y_train)
-	y_test = le.transform(y_test)	;	y_explain = le.transform(y_explain)
+	y_test = le.transform(y_test)
+	y_explain = le.transform(y_explain) if np.any(y_explain!=None) else None
 
 	return  y_train, y_test, y_explain, le.classes_
