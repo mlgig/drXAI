@@ -7,32 +7,46 @@ from explanations import tsCaptum_explainations, windowSHAP_explanations
 
 # TODO same datatype or numpy array for predict and also for score?
 # TODO avoid double conversion back and fort from ndarray to torch.Tensor for aaltd ridge?
-# TODO fix different ways to load data
 # TODO do I need tensorboard for ConvTran?
 
-# get device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+special_cases = {
+	('EigenWorms' , 'ConvTran') : 'skip',
+	('PenDigit', 'miniRocket') : 'skip',
+	('MotorImagery', 'ConvTran') : 16
+}
 
-# instantiate result data structure
+# get device and instantiate result data structure
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 results = {}
 
 ####################### load dataset ##################################
 bast_path = "/media/davide/DATA/datasets/Multivariate2018_ts/"
 
-for dir in [ "Multivariate_ts/" , "others_new/" ]:
+for dir in ["Multivariate_ts", "others_new/", "others_MTSCcom"]:
 	for current_dataset in sorted(os.listdir(os.path.join(bast_path,dir))): # datasets:
 
+		print(current_dataset)
 		# load data	# TODO same code for both!
-		dataset_dir = ( dir, os.path.join(bast_path,dir,current_dataset) )
+		dataset_dir =  os.path.join(bast_path,dir,current_dataset)
 		data = load_datasets(dataset_dir, current_dataset, explain_set_ratio=0.2)
+
 
 		# create an entry in result's data structure. Save 'symbolic label -> numeric label' map
 		results[current_dataset] = {'labels_map' : data['labels_map']}
 
 		#################################### train model #################################################
 
-		for model_name,  trainer, batch_size in [('ConvTran', train_ConvTran,32),('miniRocket', train_Minirocket_ridge_GPU,64) ,
-						('hydra', trainScore_hydra_gpu,128),] :	#('QUANT', train_QUANT_aaltd2024,128)
+		for model_name,  trainer, batch_size in [('ConvTran', train_ConvTran,32),
+					('miniRocket', train_Minirocket_ridge_GPU,64) ,('hydra', trainScore_hydra_gpu,128)
+			] :	#('QUANT', train_QUANT_aaltd2024,128)
+
+			# check if current combination of dataset and model is a special case
+			if (current_dataset,model_name) in special_cases:
+				if special_cases[(current_dataset,model_name)]=='skip':
+					continue
+				else:
+					bast_path =  special_cases[(current_dataset,model_name)]
+
 
 			start_tr = timeit.default_timer()
 
@@ -58,10 +72,12 @@ for dir in [ "Multivariate_ts/" , "others_new/" ]:
 
 			# use trheading for windowSHAP
 			to_terminate = Event()
-			p = Thread(target = windowSHAP_explanations, args = [results[current_dataset][model_name], model,X_to_explain,
-																									to_terminate])
+			p = Thread(target = windowSHAP_explanations, args = [
+				results[current_dataset][model_name], model,X_to_explain,to_terminate
+			])
+
 			# set a termination flag after have joined current thread for 24 hours (60*60*24 seconds)
-			p.start()	; 	p.join(timeout = 10)	;	to_terminate.set()	; p.join()
+			p.start()	; 	p.join(timeout = 60*60*24)	;	to_terminate.set()	; p.join()
 
 			# dump result data structure on disk
 			np.savez_compressed(os.path.join("results","experiment_results.npz"), results=results)

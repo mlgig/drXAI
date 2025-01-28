@@ -7,58 +7,85 @@ import numpy as np
 from models.ConvTran.utils import dataset_class
 import torch
 
-def load_datasets(dataset_dir_info, current_dataset, explain_set_ratio ):
-
-	# get current dir's info # TODO might be deleted in the future
-	dir, dataset_dir = dataset_dir_info
+def load_datasets(dataset_dir, current_dataset, explain_set_ratio ):
 
 	# data structure for dataset
 	data = {
-		'train_set' : {},
-		'explain_set' : {},
-		'test_set' : {}
-	} if explain_set_ratio>0 else {
-		'train_set' : {},
-		'test_set' : {}
+		'train_set': {},
+		'test_set': {}
 	}
 
-	# load data from hard drive
-	# TODO might be not necessary in the future
-	if dir == "Multivariate_ts/" or dir=='others_MTSCcom/':
-		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, current_dataset + "_TRAIN.ts"))
-		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, current_dataset + "_TEST.ts"))
-	elif dir == "others_new/":
-		X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, "TRAIN_default_X.ts"))
-		X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, "TEST_default_X.ts"))
-	else:
-		raise ValueError("dir not recognized")
+	if explain_set_ratio > 0:
+		data['explain_set'] = {}
 
+
+	X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
+	X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
+
+	# not sure if needed!
 	X_train , X_test = np.stack(X_train), np.stack(X_test)
 
-	# split train into train and 'explaining set'
-	if explain_set_ratio > 0:
-		X_train, y_train, train_indices, X_explain, y_explain, val_indices = split_dataset(X_train,y_train,
-																	validation_ratio=explain_set_ratio,random_state=42)
-		data['train_set']['indices'] = train_indices	; data['explain_set']['indices'] = val_indices
-		data['explain_set']['X'] = X_explain;
-	else:
-		y_explain = None	; X_explain = torch.tensor([])
-
-	data['train_set']['X'] = X_train;		data['test_set']['X'] = X_test
-
-	# convert to numeric labels
+	X_explain, X_train, y_explain, y_train = extract_explain_set(X_train, data, explain_set_ratio, y_train)
 	y_train, y_test, y_explain,labels_map = to_numeric_labels(y_train, y_test, y_explain)
-	data['labels_map'] = labels_map
 
+	# setting train, test sets and label map
+	data['train_set']['X'] = X_train;	data['test_set']['X'] = X_test
 	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
+	data['labels_map'] = labels_map
 
 	if explain_set_ratio>0:
 		data['explain_set']['y'] = y_explain
 
 
-	print("loaded dataset",current_dataset, "train set is split into",X_train.shape[0] ," as training set," ,
-		  X_explain.shape[0], "as 'explain set'", X_explain.shape[0],". test's dimension are " ,X_test.shape  )
+	print("\nloaded dataset",current_dataset, ":\ntrain set is split into",X_train.shape[0] ,"as training set,\t" ,
+		  X_explain.shape[0], "as 'explain set'", X_explain.shape[0],"\nTest's dimension are " ,X_test.shape  )
+
 	return data
+
+
+
+def extract_explain_set(X_train, data, explain_set_ratio, y_train):
+
+	# set explaining set info accordingly
+	# if its ratio>0 do a real division
+	if explain_set_ratio > 0:
+
+		# split train into train and 'explaining set'
+		X_train, y_train, train_indices, X_explain, y_explain, val_indices = split_dataset(
+			X_train, y_train, validation_ratio=explain_set_ratio, random_state=42
+		)
+		data['train_set']['indices'] = train_indices
+		data['explain_set']['indices'] = val_indices
+		data['explain_set']['X'] = X_explain
+
+	else:
+		# is ratio=0 set X and y to empty tensors
+		X_explain = torch.tensor([])
+		y_explain = None
+
+	return X_explain, X_train, y_explain, y_train
+
+
+
+def to_numeric_labels(y_train, y_test, y_explain=None ):
+
+	# convert labels to idx
+	le = LabelEncoder()
+	y_train = le.fit_transform( y_train)
+	y_test = le.transform(y_test)
+	y_explain = le.transform(y_explain) if np.any(y_explain!=None) else None
+
+	return  y_train, y_test, y_explain, le.classes_
+
+
+
+
+
+
+
+
+
+
 
 
 def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=16):
@@ -96,6 +123,8 @@ def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=16):
 
 
 
+
+
 def split_dataset(data, label, validation_ratio, random_state = None):
 	splitter = StratifiedShuffleSplit(n_splits=1, test_size=validation_ratio, random_state=random_state) #, random_state=1234)
 	train_indices, val_indices = zip(*splitter.split(X=np.zeros(len(label)), y=label))
@@ -108,12 +137,3 @@ def split_dataset(data, label, validation_ratio, random_state = None):
 	return train_data, train_label, train_indices[0] , val_data, val_label, val_indices[0]
 
 
-def to_numeric_labels(y_train, y_test, y_explain=None ):
-
-	# convert labels to idx
-	le = LabelEncoder()
-	y_train = le.fit_transform( y_train)
-	y_test = le.transform(y_test)
-	y_explain = le.transform(y_explain) if np.any(y_explain!=None) else None
-
-	return  y_train, y_test, y_explain, le.classes_
