@@ -1,5 +1,5 @@
 import timeit
-import torch
+from threading import Thread, Event
 
 from utils.trainers import train_ConvTran, train_Minirocket_ridge_GPU, trainScore_hydra_gpu
 from utils.data_utils import *
@@ -17,21 +17,22 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 results = {}
 
 ####################### load dataset ##################################
-bast_path = "./"
+bast_path = "/media/davide/DATA/datasets/Multivariate2018_ts/"
 
 for dir in [ "Multivariate_ts/" , "others_new/" ]:
 	for current_dataset in sorted(os.listdir(os.path.join(bast_path,dir))): # datasets:
 
 		# load data	# TODO same code for both!
 		dataset_dir = ( dir, os.path.join(bast_path,dir,current_dataset) )
-		data = load_datasets(dataset_dir, current_dataset)
+		data = load_datasets(dataset_dir, current_dataset, explain_set_ratio=0.2)
 
 		# create an entry in result's data structure. Save 'symbolic label -> numeric label' map
 		results[current_dataset] = {'labels_map' : data['labels_map']}
 
-		################################ train and explain ####################################################
-		for model_name,  trainer, batch_size in [ ('ConvTran', train_ConvTran,32), ('hydra', trainScore_hydra_gpu,128),
-						('miniRocket', train_Minirocket_ridge_GPU,64) ] :	#('QUANT', train_QUANT_aaltd2024,128)
+		#################################### train model #################################################
+
+		for model_name,  trainer, batch_size in [('ConvTran', train_ConvTran,32),('miniRocket', train_Minirocket_ridge_GPU,64) ,
+						('hydra', trainScore_hydra_gpu,128),] :	#('QUANT', train_QUANT_aaltd2024,128)
 
 			start_tr = timeit.default_timer()
 
@@ -48,13 +49,19 @@ for dir in [ "Multivariate_ts/" , "others_new/" ]:
 			torch.save(model,save_model_path)
 			print(model_name , 'train completed: Accuracy on explain set',accuracy_explain, 'and test set' , accuracy_test)
 
+			################################ explain ###########################################
 			# get explaining set's features and labels
 			X_to_explain , labels = data['explain_set']['X'] , data['explain_set']['y']
 
 			tsCaptum_explainations(current_experiment=results[current_dataset][model_name],model=model,
 								   X=X_to_explain, y=labels, batch_size=batch_size)
-			windowSHAP_explanations(current_experiment=results[current_dataset][model_name],model=model,
-									X_explain=X_to_explain)
 
-			#np.save(os.path.join("results","experiment_results.npy"), results)
+			# use trheading for windowSHAP
+			to_terminate = Event()
+			p = Thread(target = windowSHAP_explanations, args = [results[current_dataset][model_name], model,X_to_explain,
+																									to_terminate])
+			# set a termination flag after have joined current thread for 24 hours (60*60*24 seconds)
+			p.start()	; 	p.join(timeout = 10)	;	to_terminate.set()	; p.join()
+
+			# dump result data structure on disk
 			np.savez_compressed(os.path.join("results","experiment_results.npz"), results=results)
