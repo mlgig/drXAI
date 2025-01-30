@@ -7,17 +7,14 @@ import numpy as np
 from models.ConvTran.utils import dataset_class
 import torch
 
-def load_datasets(dataset_dir, current_dataset, explain_set_ratio ):
+def load_datasets(dataset_dir, current_dataset ):
 
 	# data structure for dataset
 	data = {
 		'train_set': {},
-		'test_set': {}
+		'test_set': {},
+		'name' : current_dataset,
 	}
-
-	if explain_set_ratio > 0:
-		data['explain_set'] = {}
-
 
 	X_train, y_train = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TRAIN.ts"))
 	X_test, y_test = load_from_ts_file(os.path.join(dataset_dir, f"{current_dataset}_TEST.ts"))
@@ -25,20 +22,15 @@ def load_datasets(dataset_dir, current_dataset, explain_set_ratio ):
 	# not sure if needed!
 	X_train , X_test = np.stack(X_train), np.stack(X_test)
 
-	X_explain, X_train, y_explain, y_train = extract_explain_set(X_train, data, explain_set_ratio, y_train)
-	y_train, y_test, y_explain,labels_map = to_numeric_labels(y_train, y_test, y_explain)
+	y_train, y_test,labels_map = to_numeric_labels(y_train, y_test)
 
 	# setting train, test sets and label map
 	data['train_set']['X'] = X_train;	data['test_set']['X'] = X_test
 	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
 	data['labels_map'] = labels_map
 
-	if explain_set_ratio>0:
-		data['explain_set']['y'] = y_explain
-
-
-	print("\nloaded dataset",current_dataset, ":\ntrain set is split into",X_train.shape[0] ,"as training set,\t" ,
-		  X_explain.shape[0], "as 'explain set'", X_explain.shape[0],"\nTest's dimension are " ,X_test.shape  )
+	print("\nloaded dataset",current_dataset, ":\ntrain set shape is",X_train.shape,
+		  ",test set shape is " ,X_test.shape  )
 
 	return data
 
@@ -67,16 +59,14 @@ def extract_explain_set(X_train, data, explain_set_ratio, y_train):
 
 
 
-def to_numeric_labels(y_train, y_test, y_explain=None ):
+def to_numeric_labels(y_train, y_test):
 
 	# convert labels to idx
 	le = LabelEncoder()
 	y_train = le.fit_transform( y_train)
 	y_test = le.transform(y_test)
-	y_explain = le.transform(y_explain) if np.any(y_explain!=None) else None
 
-	return  y_train, y_test, y_explain, le.classes_
-
+	return  y_train, y_test,  le.classes_
 
 
 
@@ -88,9 +78,8 @@ def to_numeric_labels(y_train, y_test, y_explain=None ):
 
 
 
-def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=16):
 
-	explain_set = 'explain_set' in dataset.keys()
+def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=32):
 
 	# get different dataset parts
 	X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
@@ -111,14 +100,7 @@ def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=16):
 	val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 	test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
-	if explain_set:
-		X_explain, y_explain =  dataset['explain_set']['X'] , dataset['explain_set']['y']
-		explain_dataset = dataset_class(X_explain, y_explain)
-		explain_loader = DataLoader(dataset=explain_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
-	else:
-		explain_loader = None
-
-	return train_loader, val_loader, dev_dataset, explain_loader, test_loader
+	return train_loader, val_loader, dev_dataset, test_loader
 
 
 
