@@ -35,7 +35,37 @@ def load_datasets(dataset_dir, current_dataset ):
 	return data
 
 
+def to_numeric_labels(y_train, y_test):
 
+	# convert labels to idx
+	le = LabelEncoder()
+	y_train = le.fit_transform( y_train)
+	y_test = le.transform(y_test)
+
+	return  y_train, y_test,  le.classes_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# TODO remove following function!
 def extract_explain_set(X_train, data, explain_set_ratio, y_train):
 
 	# set explaining set info accordingly
@@ -56,18 +86,6 @@ def extract_explain_set(X_train, data, explain_set_ratio, y_train):
 		y_explain = None
 
 	return X_explain, X_train, y_explain, y_train
-
-
-
-def to_numeric_labels(y_train, y_test):
-
-	# convert labels to idx
-	le = LabelEncoder()
-	y_train = le.fit_transform( y_train)
-	y_test = le.transform(y_test)
-
-	return  y_train, y_test,  le.classes_
-
 
 
 
