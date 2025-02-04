@@ -1,6 +1,7 @@
 import numpy as np
 from torch import nn
 from torch.cuda import is_available as cuda_is_available
+from  torch.utils.data import DataLoader
 import torch
 from .AbsolutePositionalEncoding import tAPE, AbsolutePositionalEncoding, LearnablePositionalEncoding
 from .Attention import Attention, Attention_Rel_Scl, Attention_Rel_Vec
@@ -173,7 +174,7 @@ class ConvTran(nn.Module):
         probabilities = None
 
         with torch.no_grad():
-            if isinstance(data,torch.utils.data.Dataset ):
+            if isinstance(data , DataLoader):
                 scores = self._predict(data)
                 probabilities = nn.functional.softmax(scores, dim=-1)
 
