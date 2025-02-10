@@ -39,12 +39,12 @@ for dir_n in [ "Multivariate_ts", "others_new", "others_MTSCcom"]:
 		# set which models to use and initialize result data structure
 		models_batchSizes = [
 			('hydra',128),
-
 			('ConvTran',32),
 			('miniRocket',64) ,
 		]
 
-		results[current_dataset] = dict.fromkeys( [name for (name,_) in models_batchSizes  ])
+		for name,_ in models_batchSizes:
+			results[current_dataset].setdefault(name,{})
 
 		for model_name, batch_size in models_batchSizes:
 
@@ -72,15 +72,18 @@ for dir_n in [ "Multivariate_ts", "others_new", "others_MTSCcom"]:
 				#('42s_background' ,np.ones((	1, X_to_explain.shape[1], X_to_explain.shape[2]))*42	)	# meaningless background
 			]
 
-			results[current_dataset][model_name] = dict.fromkeys([ name for (name,_) in backgrounds])
+			for name, _ in backgrounds:
+				results[current_dataset][model_name].setdefault(name, {})
 
 			for b_name,background in backgrounds:
+
+				results[current_dataset][model_name][b_name] = {}
 
 				for alg in ['Feature_Ablation' ,'Shapley_Value_Sampling']:
 					# for each background initialise result dict; then explain
 					chs_selected, attribution = tsCaptum_selection(model=model,X=X_to_explain,y=labels,
 						batch_size=batch_size,background=background,explainer_name=alg, return_saliency=True)
-					results[current_dataset][model_name][b_name] = {
+					results[current_dataset][model_name][b_name][alg] = {
 						'selected_channels' : chs_selected,
 						'saliency_map' : attribution
 					}

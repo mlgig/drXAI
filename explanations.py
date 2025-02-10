@@ -68,7 +68,7 @@ def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, retur
 
 	selection = extract_selection_attribution(saliency_map)
 
-	to_return = (selection, saliency_map) if return_saliency else selection
+	to_return = (sorted(selection), saliency_map) if return_saliency else sorted(selection)
 
 	return to_return
 
