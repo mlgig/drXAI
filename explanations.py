@@ -10,7 +10,7 @@ def tsCaptum_explainations(current_experiment ,model, X, y, batch_size,backgroun
 
 		current_experiment[explainer_name] = {}
 		attribution = explainer(model)
-		for n_segments in [1, 5, 10]:
+		for n_segments in [1]:
 			start_ex = timeit.default_timer()
 			saliency_maps = attribution.explain(samples=X, labels=y, n_segments=n_segments,normalise=True,
 									baseline=background,batch_size=batch_size)
@@ -49,3 +49,35 @@ def windowSHAP_explanations(current_experiment,model, X_explain, to_terminate,ba
 	current_experiment['Window_SHAP']['explaining_time'] = (timeit.default_timer()- start_exp)
 
 
+########################### new ######################################################
+from utils.channel_extractions import _detect_knee_point
+
+def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, return_saliency):
+	# TODO better name?
+	if explainer_name=='Feature_Ablation':
+		algo = Feature_Ablation
+	elif explainer_name=='Shapley_Value_Sampling':
+		algo = Shapley_Value_Sampling
+	else:
+		raise ValueError("only Feature_Ablation and Shapley_Value_Sampling are allowed")
+
+	explainer = algo(model)
+	#TODO n_segment is hard coded
+	saliency_map = explainer.explain(samples=X, labels=y, n_segments=1,normalise=True,
+											baseline=background,batch_size=batch_size)
+
+	selection = extract_selection_attribution(saliency_map)
+
+	to_return = (selection, saliency_map) if return_saliency else selection
+
+	return to_return
+
+def extract_selection_attribution(attribution):
+	chs_relevance_sampeWise = np.average(attribution , axis=-1)
+
+	# selection based on knee point
+	chs_relevance_global =  np.average((chs_relevance_sampeWise), axis=0)
+	ordered_relevance, ordered_idx = np.flip(np.sort(chs_relevance_global)) , np.flip(np.argsort(chs_relevance_global))
+	knee_selection = _detect_knee_point(ordered_relevance,ordered_idx )
+
+	return knee_selection
