@@ -12,7 +12,7 @@ from utils.backgrounds import class_prototypes_avg, smote_avg, equal_distributed
 
 special_cases = {
 	('EigenWorms' , 'ConvTran') : 'skip',
-	('PenDigit', 'miniRocket') : 'skip',
+	('PenDigits', 'miniRocket') : 'skip',
 	('MotorImagery', 'ConvTran') : 16
 }
 
