@@ -31,7 +31,7 @@ def trainScore_hydra_gpu( dataset , device, batch_size ):
     error_test_set  =   model.score(data_test)
     X_train_pred = model.predict_proba(data_train)
 
-    return   (1 - error_test_set.cpu().numpy().item()),X_train_pred, model
+    return   (1 - error_test_set.cpu().numpy().item()), X_train_pred, model
 
 
 
