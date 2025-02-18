@@ -51,7 +51,7 @@ def get_accuracies(original_data, channel_selections, initial_accuracies=None):
 	current_dataset_dict = accuracies['accuracies']
 
 	for clf_name, trainer, batch_size in [
-		#('ConvTran', train_ConvTran, 32),
+		('ConvTran', train_ConvTran, 32),
 		('miniRocket', train_Minirocket_ridge_GPU, 64),
 		('hydra', trainScore_hydra_gpu, 128)
 		]:
