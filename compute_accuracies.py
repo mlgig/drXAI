@@ -9,7 +9,7 @@ from utils.data_utils import *
 
 # get device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-base_path = "/media/davide/DATA/datasets/Multivariate2018_ts/"
+base_path = #TODO argument
 
 # TODO move into separate shared file
 special_cases = {
@@ -92,7 +92,8 @@ def get_accuracies(original_data, channel_selections, initial_accuracies=None):
 			current_dataset_dict[clf_name][exp_name]	 = 	{
 				'mean' : np.mean(current_dataset_accs).item(),
 				'std' : np.std(current_dataset_accs).item() ,
-				'best' :  np.max(current_dataset_accs).item()
+				'best' :  np.max(current_dataset_accs).item(),
+				'channels' : selection
 			}
 
 			#("mean and std accuracy was", 	(np.mean(current_acc) ,np.std(current_acc)), "\n\n")
