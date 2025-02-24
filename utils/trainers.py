@@ -1,5 +1,3 @@
-import torch
-
 from models.aaltd2024.code.hydra_gpu import HydraMultivariateGPU
 from models.aaltd2024.code.ridge import RidgeClassifier
 from models.aaltd2024.code.quant import QuantClassifier as QuantClassifier_aaltd
@@ -73,22 +71,8 @@ def train_ConvTran( dataset , device, batch_size, verbose=False ):
 
 
 
-
-
-
-
-
-
-
-
-def train_QUANT_aaltd2024(X_train, y_train, X_test, y_test):
-    batch_size = 256
-
-    data_train = BatchDataset(X_train, y_train, batch_size=batch_size, shuffle=True)
-    data_test = BatchDataset(X_test, y_test, batch_size=batch_size, shuffle=False)
-    model = QuantClassifier_aaltd()
-
-    model.fit(data_train)
-    error = model.score(data_test)
-
-    return  (1 - error) , model
+trainer_list = [
+    ('hydra', trainScore_hydra_gpu),
+    ('ConvTran', train_ConvTran),
+    ('miniRocket', train_Minirocket_ridge_GPU),
+]

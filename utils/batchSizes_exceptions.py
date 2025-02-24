@@ -1,11 +1,5 @@
 from utils.trainers import train_ConvTran, train_Minirocket_ridge_GPU, trainScore_hydra_gpu
 
-trainers = [
-	('hydra', trainScore_hydra_gpu),
-	('ConvTran', train_ConvTran),
-	('miniRocket', train_Minirocket_ridge_GPU),
-]
-
 special_cases = {
 	('EigenWorms' , 'ConvTran') : 'skip',
 	('PenDigits', 'miniRocket') : 'skip',

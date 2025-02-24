@@ -1,11 +1,12 @@
-from aeon.datasets import load_from_ts_file
 import os
+import numpy as np
+import torch
+
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader
-import numpy as np
+from aeon.datasets import load_from_ts_file
 from models.ConvTran.utils import dataset_class
-import torch
 
 def load_datasets(dataset_dir, current_dataset ):
 

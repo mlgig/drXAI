@@ -50,7 +50,7 @@ def windowSHAP_explanations(current_experiment,model, X_explain, to_terminate,ba
 
 
 ########################### new ######################################################
-from utils.channel_extractions import _detect_knee_point
+from utils.channels_extraction import _detect_knee_point
 
 def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, return_saliency):
 	# TODO better name?
