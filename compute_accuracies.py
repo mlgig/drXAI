@@ -3,19 +3,22 @@ import pandas as pd
 from copy import deepcopy
 import argparse
 from pprint import pprint
+import timeit
 
 from utils.trainers import train_ConvTran, train_Minirocket_ridge_GPU, trainScore_hydra_gpu
 from utils.data_utils import *
 
 # get device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-base_path = #TODO argument
+base_path =  #TODO argument
 
 # TODO move into separate shared file
 special_cases = {
 	('EigenWorms' , 'ConvTran') : 'skip',
 	('PenDigits', 'miniRocket') : 'skip',
-	('MotorImagery', 'ConvTran') : 16
+	('MotorImagery', 'ConvTran') : 16 ,
+	('Tiselac', 	'ConvTran') :  4096,
+	('PenDigits', 	'ConvTran') :  1024
 }
 
 def get_AI_selections(saliency_map_dict, result_dict, info):
@@ -39,21 +42,20 @@ def get_elbow_selections(current_data,elbows):
 		'elbow_sum' : elbows[current_data]['Sum']
 	}
 
-def get_accuracies(original_data, channel_selections, initial_accuracies=None):
-
-	#TODO optional param to_save=bool
-	#TODO hardcoded
-	base_model_path = "saved_models"
+def get_accuracies(original_data,save_models_path, channel_selections, initial_accuracies=None):
 
 	# get info
 	current_dataset = original_data['name']
 	accuracies = {	'accuracies'	: {}	}
 	current_dataset_dict = accuracies['accuracies']
 
+
+
 	for clf_name, trainer, batch_size in [
+		('hydra', trainScore_hydra_gpu, 128),
 		('ConvTran', train_ConvTran, 32),
 		('miniRocket', train_Minirocket_ridge_GPU, 64),
-		('hydra', trainScore_hydra_gpu, 128)
+
 		]:
 
 		current_dataset_dict[clf_name] = {} if initial_accuracies is None else {
@@ -77,19 +79,25 @@ def get_accuracies(original_data, channel_selections, initial_accuracies=None):
 				else:
 					batch_size = special_cases[(current_dataset,clf_name)]
 
+			saved_models_path = os.path.join(save_models_path, "_".join((current_dataset,clf_name,exp_name))+".pth")
+
 			# train 5 times
 			for i in range(5):
-				current_accuracy, _ , _ = trainer(dataset=data, device=device, batch_size=batch_size)
+				star_time = timeit.default_timer()
+				current_accuracy, _ , model = trainer(dataset=data, device=device, batch_size=batch_size)
+				total_time = timeit.default_timer() - star_time
 				current_dataset_accs[i] = current_accuracy
 
 				# TODO optional hyperparam??
 				# save best model
-				#if max(current_dataset_accs)==current_accuracy:
-				#	torch.save(clf_name,saved_models_path)
+				if max(current_dataset_accs)==current_accuracy:
+					torch.save(model,saved_models_path)
+					training_time = total_time
 
 
 			# extrac mean, std deviation and best accuracy
 			current_dataset_dict[clf_name][exp_name]	 = 	{
+				'training_time' : training_time,
 				'mean' : np.mean(current_dataset_accs).item(),
 				'std' : np.std(current_dataset_accs).item() ,
 				'best' :  np.max(current_dataset_accs).item(),
@@ -103,10 +111,11 @@ def get_accuracies(original_data, channel_selections, initial_accuracies=None):
 def main(args):
 
 	initial_accuracies_path = args.initial_accuracies_path
+	saved_models_path = args.saved_models_path
 	result_path = args.result_path
 	elbow_selections_path = args.elbow_selections_path
 	saliency_maps_path = args.saliency_maps_path
-	get_initial_accuracy = (args.saliency_maps_path==None)
+	get_initial_accuracy = (initial_accuracies_path==None)
 
 	if  get_initial_accuracy:
 		# if currently interested in initial classifier accuracy no need to load any data
@@ -122,11 +131,12 @@ def main(args):
 	#TODO both for are hard coded!
 	all_accuracies = {}
 	for dir in  ["Multivariate_ts/", "others_new/","others_MTSCcom"]: #, "data_new/" ]:	#TODO hardcoded "Multivariate_ts/",
-		for current_dataset in sorted(os.listdir(os.path.join(base_path,dir))): # datasets:
+		for current_dataset in sorted(os.listdir(os.path.join(base_path,dir))): # #TODO to remove :2!
 
 			# load current dataset
 			dataset_dir =  os.path.join(base_path,dir,current_dataset)
 			data = load_datasets(dataset_dir, current_dataset)
+			print(data["train_set"]["X"].shape)
 
 			if not get_initial_accuracy:
 				# if not initial accuracy mode get elbow and AI selection
@@ -145,7 +155,7 @@ def main(args):
 				}
 
 			# train models on selected dataset versions
-			current_accuracies = get_accuracies(data,all_selections, initial_accuracies)
+			current_accuracies = get_accuracies(data,saved_models_path, all_selections, initial_accuracies)
 			pprint(current_accuracies ,indent=4)
 			all_accuracies[current_dataset] = current_accuracies
 
@@ -156,9 +166,10 @@ def main(args):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument("initial_accuracies_path", type=str, help="file path where initial accuracies "
-															 "are/will be saved")
 	parser.add_argument("result_path", type=str, help="file path where final accuracies will be saved")
+	parser.add_argument("saved_models_path", type=str, help="folder where trained model will be saved")
+	parser.add_argument("initial_accuracies_path", type=str, nargs="?", help="file path where initial accuracies "
+															 "will be saved")
 	parser.add_argument("elbow_selections_path", type=str, nargs='?', help="file path where elbow selections"
 																	 " are saved")
 	parser.add_argument("saliency_maps_path", type=str, nargs='?', help="file path where saliency maps and "
