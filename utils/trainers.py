@@ -29,8 +29,8 @@ def trainScore_hydra_gpu( dataset , device, batch_size ):
     error_test_set  =   model.score(data_test)
     X_train_pred = model.predict_proba(data_train)
 
-    return   (1 - error_test_set.cpu().numpy().item()), X_train_pred, model
-
+    #return   (1 - error_test_set.cpu().numpy().item()), X_train_pred, model
+    return   (1 - error_test_set.cpu().numpy().item()), model
 
 
 def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
@@ -52,7 +52,9 @@ def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
     acc_test_set = model.score(data_test)
     X_train_pred = model.predict_proba(data_train)
 
-    return acc_test_set.item(), X_train_pred, model
+#    return acc_test_set.item(), X_train_pred, model
+    return acc_test_set.item(), model
+
 
 
 def train_ConvTran( dataset , device, batch_size, verbose=False ):
@@ -67,7 +69,8 @@ def train_ConvTran( dataset , device, batch_size, verbose=False ):
     accuracy_testSet = convTran.score(test_loader)
     X_train_pred = convTran.predict_proba(train_loader)
 
-    return accuracy_testSet.item(), X_train_pred, convTran
+    #return accuracy_testSet.item(), X_train_pred, convTran
+    return accuracy_testSet.item(), convTran
 
 
 
