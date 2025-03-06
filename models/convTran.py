@@ -2,7 +2,6 @@ import logging
 import numpy as np
 from copy import deepcopy
 
-from torch.cuda import is_available as is_gpu_available
 from torch.cuda import  empty_cache as empty_gpu_cache
 from torch.utils.data import DataLoader
 
@@ -77,7 +76,7 @@ def build_train_ConvTran(train_loader,val_loader, dev_dataset, device, save_path
 	# get final model, final trainer
 	shape = dev_dataset.feature.shape
 	final_model = build_ConvTran_model(final_default_hyperparams, shape, n_labels)
-	dev_loader = DataLoader(dataset=dev_dataset, batch_size=final_default_hyperparams['batch_size'], shuffle=True, pin_memory=True)
+	dev_loader = DataLoader(dataset=dev_dataset, batch_size=trainer.dataloader.batch_size, shuffle=True, pin_memory=True)
 	final_trainer = SupervisedTrainer(final_model, dev_loader, device, final_default_hyperparams['loss_module'], final_default_hyperparams['optimizer'],
 			l2_reg=0, print_interval=final_default_hyperparams['print_interval'], console=final_default_hyperparams['console'],
 									  print_conf_mat=False)
