@@ -2,22 +2,44 @@ import numpy as np
 from tsCaptum.explainers import Feature_Ablation, Shapley_Value_Sampling
 from windowshap import MyWindowSHAP
 import timeit
+from utils.channels_extraction import _detect_knee_point
 
-def tsCaptum_explainations(current_experiment ,model, X, y, batch_size,background):
-	for (explainer, explainer_name) in [
-		(Feature_Ablation, 'Feature_Ablation'), (Shapley_Value_Sampling, 'Shapley_Value_Sampling')
-	]:
 
-		current_experiment[explainer_name] = {}
-		attribution = explainer(model)
-		for n_segments in [1]:
-			start_ex = timeit.default_timer()
-			saliency_maps = attribution.explain(samples=X, labels=y, n_segments=n_segments,normalise=True,
-									baseline=background,batch_size=batch_size)
-			current_experiment[explainer_name][n_segments] = {
-				'result': saliency_maps,
-				'explaining_time': (timeit.default_timer() - start_ex)
-			}
+def extract_selection_attribution(attribution, abs):
+	"""
+	function to extract relevant time points/channels out of a saliency maps
+	:param attribution:		the saliency map where to extract relevant attribution
+	:param abs: 			whether to use the absolut value i.e. one knee_cut or not i.e. two different knee_cuts
+	:return: 				selected channels
+	"""
+	chs_relevance = np.average(np.average(attribution , axis=-1),axis=0)
+
+	ordered_scores_idx = lambda x : ( np.flip(np.sort(x)) , np.flip(np.argsort(x)) )
+
+	if abs:
+		# have only on knee cut based on the channel relevance score's absolute value
+		chs_relevance =  np.abs(chs_relevance)
+		ordered_relevance, ordered_idx = ordered_scores_idx(chs_relevance)
+		knee_selection = _detect_knee_point(ordered_relevance,ordered_idx )
+	else:
+		# otherwise compute two difference ones and take their union
+		ordered_relevance, ordered_idx = ordered_scores_idx(chs_relevance)
+		negatives = np.where(ordered_relevance<0)[0]
+		if negatives.shape==(0,):
+			# no negative values
+			knee_selection = []
+		else:
+			negative_start_idx = negatives[0]
+
+			pos_knee_selection = _detect_knee_point(ordered_relevance[:negative_start_idx],ordered_idx[:negative_start_idx] )
+			neg_knee_selection = _detect_knee_point(ordered_relevance[negative_start_idx:],ordered_idx[negative_start_idx:] )
+			print( "pos:",len(pos_knee_selection),"out of", len(ordered_relevance[:negative_start_idx]) ,
+				   "neg:",len(neg_knee_selection),"out of", len(ordered_relevance[negative_start_idx:]))
+			knee_selection = pos_knee_selection + neg_knee_selection
+
+	return knee_selection
+
+###################################	explainers #############################################
 
 def windowSHAP_explanations(current_experiment,model, X_explain, to_terminate,background_data):
 	# so far hard coded 0 baseline # TODO get more baselines
@@ -49,11 +71,9 @@ def windowSHAP_explanations(current_experiment,model, X_explain, to_terminate,ba
 	current_experiment['Window_SHAP']['explaining_time'] = (timeit.default_timer()- start_exp)
 
 
-########################### new ######################################################
-from utils.channels_extraction import _detect_knee_point
-
 def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, return_saliency):
-	# TODO better name?
+
+	# check explainer to be used
 	if explainer_name=='Feature_Ablation':
 		algo = Feature_Ablation
 	elif explainer_name=='Shapley_Value_Sampling':
@@ -63,21 +83,20 @@ def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, retur
 
 	explainer = algo(model)
 	#TODO n_segment is hard coded
+	start_time = timeit.default_timer()
 	saliency_map = explainer.explain(samples=X, labels=y, n_segments=1,normalise=True,
 											baseline=background,batch_size=batch_size)
+	tot_time = timeit.default_timer() - start_time
 
-	selection = extract_selection_attribution(saliency_map)
+	selections = []
+	for absolute in [True, False]:
+		selection = extract_selection_attribution(saliency_map, abs=absolute)
+		selections.append( selection )
 
-	to_return = (sorted(selection), saliency_map) if return_saliency else sorted(selection)
+	# return accordingly to parameters
+	to_return = (selections, saliency_map,tot_time) if return_saliency else (selections,tot_time)
 
 	return to_return
 
-def extract_selection_attribution(attribution):
-	chs_relevance_sampeWise = np.average(attribution , axis=-1)
 
-	# selection based on knee point
-	chs_relevance_global =  np.average((chs_relevance_sampeWise), axis=0)
-	ordered_relevance, ordered_idx = np.flip(np.sort(chs_relevance_global)) , np.flip(np.argsort(chs_relevance_global))
-	knee_selection = _detect_knee_point(ordered_relevance,ordered_idx )
 
-	return knee_selection
