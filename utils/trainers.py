@@ -75,7 +75,7 @@ def train_ConvTran( dataset , device, batch_size, verbose=False ):
 
 
 trainer_list = [
-    ('hydra', trainScore_hydra_gpu),
     ('ConvTran', train_ConvTran),
+    ('hydra', trainScore_hydra_gpu),
     ('miniRocket', train_Minirocket_ridge_GPU),
 ]

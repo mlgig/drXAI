@@ -31,13 +31,59 @@ def extract_selection_attribution(attribution, abs):
 		else:
 			negative_start_idx = negatives[0]
 
-			pos_knee_selection = _detect_knee_point(ordered_relevance[:negative_start_idx],ordered_idx[:negative_start_idx] )
-			neg_knee_selection = _detect_knee_point(ordered_relevance[negative_start_idx:],ordered_idx[negative_start_idx:] )
+			pos_knee_selection = _detect_knee_point(
+				ordered_relevance[:negative_start_idx],
+				ordered_idx[:negative_start_idx]
+			)
+			neg_knee_selection = _detect_knee_point(
+				np.flip(np.abs(ordered_relevance[negative_start_idx:])),
+				np.flip(ordered_idx[negative_start_idx:])
+			)
 			print( "pos:",len(pos_knee_selection),"out of", len(ordered_relevance[:negative_start_idx]) ,
 				   "neg:",len(neg_knee_selection),"out of", len(ordered_relevance[negative_start_idx:]))
 			knee_selection = pos_knee_selection + neg_knee_selection
 
 	return knee_selection
+
+
+def get_AI_selections(saliency_map_dict, result_dict, info):
+
+	for k in saliency_map_dict.keys():
+		if k=='labels_map':
+			continue
+		elif k.startswith('selected_channels'):
+			k_name = k.replace('selected_channels_','')
+			model, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
+			if saliency_map_dict[k]!=[]:
+				result_dict[model]["_".join(( explainer,k_name) )] = saliency_map_dict[k]
+
+		elif type(saliency_map_dict[k])==dict :
+			get_AI_selections(saliency_map_dict[k],result_dict, info+"_"+str(k))
+
+	return result_dict
+
+
+def add_mostAccurate(all_selections,initial_accuracies):
+	# get most accurate
+	most_accurate_model = max(initial_accuracies, key=lambda model: initial_accuracies[model]['accuracy'])
+	AI_selections =	(set( all_selections[most_accurate_model].keys()).
+						difference(set(['elbow_pairwise', 'elbow_sum'])))	# take out the two elbows
+
+	best_model_AI_selections = [(selection,all_selections[most_accurate_model][selection]) for selection in AI_selections]
+
+	# add this selection to other models
+	other_models = set(initial_accuracies.keys()).difference(set([most_accurate_model]))
+	for model in other_models:
+		for (name,selection) in best_model_AI_selections:
+			all_selections[model]["most_accurate_model_"+name] =selection
+
+	return all_selections
+
+def get_elbow_selections(current_data,elbows):
+	return {
+		'elbow_pairwise' : elbows[current_data]['Pairwise'] ,
+		'elbow_sum' : elbows[current_data]['Sum']
+	}
 
 ###################################	explainers #############################################
 

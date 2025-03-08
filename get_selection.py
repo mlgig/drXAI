@@ -1,8 +1,8 @@
 import timeit
-from threading import Thread, Event
-import argparse
-
 import numpy as np
+import argparse
+from threading import Thread, Event
+
 
 from utils.trainers import trainer_list
 from utils.data_utils import *
@@ -19,33 +19,34 @@ def main(args):
 	#get arguments
 	base_path = args.dataset_dir
 	saved_models_dir = args.saved_models_path
-	model_result_path = args.model_result_path
-	results_path = args.explainer_results_path
+	results_dir = args.explainer_results_dir
 	random_seed = args.random_seed
 
 	# get device, set random seed and instantiate result data structure
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	torch.manual_seed(random_seed)
 	results = {}
-	models_info = {}
 
 	# load dataset
 	# TODO hard coded
 	for dir_n in [ "Multivariate_ts", "others_new", "others_MTSCcom"]:
 		for current_dataset in  sorted(os.listdir(os.path.join(base_path,dir_n))): # datasets:
 
+			results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
 			dataset_dir =  os.path.join(base_path,dir_n,current_dataset)
 			data = load_datasets(dataset_dir, current_dataset)
 
-			print("\n\n current loaded dataset is", current_dataset)
+			print("\n\n current loaded dataset is....", current_dataset)
 
 			# TODO hard coded
 			if data['train_set']['X'].shape[1] < 8:
+				print("skipped because the dataset is too small")
 				continue
+			else:
+				print("loaded")
 
 			# create an entry in result's data structure. Save 'symbolic label -> numeric label' map
 			results[current_dataset] = {'labels_map' : data['labels_map']}
-			models_info[current_dataset] = {}
 
 			############################# train ####################################
 			# train current classifier
@@ -63,13 +64,11 @@ def main(args):
 
 					file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
 					torch.save(model, os.path.join(saved_models_dir,file_name))
-					models_info[current_dataset][model_name] = {
-						"training_time" : training_time,
-						'accuracy' : current_accuracy,
-					}
 
-
-				results[current_dataset][model_name] = {}
+				results[current_dataset][model_name] = {
+					"training_time" : training_time,
+					'accuracy' : current_accuracy
+				}
 
 				################################ explain ###########################################
 				# get explaining set's features and labels
@@ -77,7 +76,7 @@ def main(args):
 
 				# define backgrounds to be tested
 				backgrounds = [
-					('zerosBackground', X_to_explain[0:1]*0	),									#zeros background
+					('zerosBackground', X_to_explain[0:1]*0	),
 					('smoteBackground',smote_avg(X_to_explain,labels)	),
 					('prototypesBackground' ,class_prototypes_avg(X_to_explain,labels)	),
 				]
@@ -111,17 +110,15 @@ def main(args):
 
 					# dump result data structure on disk
 					np.savez_compressed(results_path, results=results)
-					np.save( model_result_path, models_info)
 
-
+			continue
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("dataset_dir", type=str, help="folder where datasets are stored")
 	parser.add_argument("saved_models_path", type=str, help="folder where to saved models")
-	parser.add_argument("model_result_path", type=str, help="path where to save info about model")
-	parser.add_argument("explainer_results_path", type=str, help="path where to save explanations results"
-																 "i.e. saliency map and selected channels/time points")
+	parser.add_argument("explainer_results_dir", type=str, help="directory where to save classifiers and "
+									 "attributions info including related selection. Format is one file per dataset")
 	parser.add_argument("random_seed", type=int, help="random seed to be used for reproducibility")
 	args = parser.parse_args()
 	main(args)
