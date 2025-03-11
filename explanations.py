@@ -46,26 +46,33 @@ def extract_selection_attribution(attribution, abs):
 	return knee_selection
 
 
-def get_AI_selections(saliency_map_dict, result_dict, info):
+def get_AI_selections(saliency_map_dict, selection_dict, accuracies, info):
+	# TODO find a better name
+	# TODO move  these functions somewhere else?
 
 	for k in saliency_map_dict.keys():
 		if k=='labels_map':
 			continue
+		if k=='accuracy':
+			accuracies[info[1:]] = saliency_map_dict[k]
 		elif k.startswith('selected_channels'):
 			k_name = k.replace('selected_channels_','')
 			model, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
 			if saliency_map_dict[k]!=[]:
-				result_dict[model]["_".join(( explainer,k_name) )] = saliency_map_dict[k]
+				selection_dict[model]["_".join(( explainer,k_name) )] = saliency_map_dict[k]
+
 
 		elif type(saliency_map_dict[k])==dict :
-			get_AI_selections(saliency_map_dict[k],result_dict, info+"_"+str(k))
+			get_AI_selections(
+				saliency_map_dict[k],selection_dict,accuracies,
+				info+"_"+str(k))
 
-	return result_dict
+	return selection_dict, accuracies
 
 
 def add_mostAccurate(all_selections,initial_accuracies):
 	# get most accurate
-	most_accurate_model = max(initial_accuracies, key=lambda model: initial_accuracies[model]['accuracy'])
+	most_accurate_model = max(initial_accuracies, key=lambda model: initial_accuracies[model])
 	AI_selections =	(set( all_selections[most_accurate_model].keys()).
 						difference(set(['elbow_pairwise', 'elbow_sum'])))	# take out the two elbows
 
