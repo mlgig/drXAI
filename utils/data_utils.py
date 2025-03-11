@@ -30,8 +30,8 @@ def load_datasets(dataset_dir, current_dataset ):
 	data['train_set']['y'] = y_train;	data['test_set']['y'] = y_test
 	data['labels_map'] = labels_map
 
-	print("\nloaded dataset",current_dataset, ":\ntrain set shape is",X_train.shape,
-		  ",test set shape is " ,X_test.shape  )
+	#print("\nloaded dataset",current_dataset, ":\ntrain set shape is",X_train.shape,
+	#	  ",test set shape is " ,X_test.shape  )
 
 	return data
 

@@ -1,5 +1,3 @@
-from utils.trainers import train_ConvTran, train_Minirocket_ridge_GPU, trainScore_hydra_gpu
-
 special_cases = {
 	('EigenWorms' , 'ConvTran') : 'skip',
 	('PenDigits', 'miniRocket') : 'skip',

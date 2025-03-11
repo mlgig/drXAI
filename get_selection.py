@@ -25,7 +25,6 @@ def main(args):
 	# get device, set random seed and instantiate result data structure
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	torch.manual_seed(random_seed)
-	results = {}
 
 	# load dataset
 	# TODO hard coded
@@ -46,7 +45,7 @@ def main(args):
 				print("loaded")
 
 			# create an entry in result's data structure. Save 'symbolic label -> numeric label' map
-			results[current_dataset] = {'labels_map' : data['labels_map']}
+			results = {'labels_map' : data['labels_map']}
 
 			############################# train ####################################
 			# train current classifier
@@ -111,7 +110,6 @@ def main(args):
 					# dump result data structure on disk
 					np.savez_compressed(results_path, results=results)
 
-			continue
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
