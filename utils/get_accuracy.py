@@ -21,7 +21,7 @@ def get_accuracies(original_data,save_models_path, channel_selections, initial_a
 		# if the initial accuracy was provided initialize the dictionary using the 'all_channels' (aka initial) accuracy
 		# otherwise the dictionary should be empty
 		current_dataset_dict[clf_name] = {} if initial_accuracies is None else {
-			'initial_accuracy' : initial_accuracies[current_dataset][clf_name]['all_channels'] #['all_channels']
+			'initial_accuracy' : initial_accuracies[clf_name] #['all_channels']
 		}
 
 		for exp_name, selection in channel_selections[clf_name].items():
@@ -44,7 +44,7 @@ def get_accuracies(original_data,save_models_path, channel_selections, initial_a
 			# train 5 times
 			for i in range(5):
 				star_time = timeit.default_timer()
-				current_accuracy, _ , model = trainer(dataset=data, device=device, batch_size=batch_size)
+				current_accuracy , model = trainer(dataset=data, device=device, batch_size=batch_size)
 				total_time = timeit.default_timer() - star_time
 				current_dataset_accs[i] = current_accuracy
 
