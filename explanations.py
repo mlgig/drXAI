@@ -41,7 +41,7 @@ def extract_selection_attribution(attribution, abs):
 			)
 			print( "pos:",len(pos_knee_selection),"out of", len(ordered_relevance[:negative_start_idx]) ,
 				   "neg:",len(neg_knee_selection),"out of", len(ordered_relevance[negative_start_idx:]))
-			knee_selection = pos_knee_selection + neg_knee_selection
+			knee_selection = np.concatenate( ( pos_knee_selection , neg_knee_selection) ).tolist()
 
 	return knee_selection
 
