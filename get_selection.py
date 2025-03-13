@@ -64,7 +64,7 @@ def main(args):
 					file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
 					torch.save(model, os.path.join(saved_models_dir,file_name))
 
-				results[current_dataset][model_name] = {
+				results[model_name] = {
 					"training_time" : training_time,
 					'accuracy' : current_accuracy
 				}
@@ -83,14 +83,14 @@ def main(args):
 				for b_name,background in backgrounds:
 
 					# for each background initialise result dict, then explain
-					results[current_dataset][model_name][b_name] = {}
+					results[model_name][b_name] = {}
 
 					for alg in ['Feature_Ablation' ,'Shapley_Value_Sampling']:
 						ch_selections, attribution, exp_time = tsCaptum_selection(model=model,X=X_to_explain,y=labels,
 							batch_size=batch_size,background=background,explainer_name=alg, return_saliency=True)
 
 						# save saliency map, selections,
-						results[current_dataset][model_name][b_name][alg] = {
+						results[model_name][b_name][alg] = {
 							'selected_channels_absolute' : ch_selections[0],
 							'selected_channels_PosNeg' : ch_selections[1],
 							'saliency_map' : attribution,

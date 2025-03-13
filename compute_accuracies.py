@@ -9,9 +9,10 @@ from explanations import get_AI_selections, get_elbow_selections ,  add_mostAccu
 
 def main(args):
 
-	result_dir = args.result_dir
+	explanation_dir = args.explanation_dir
 	saved_models_path = args.saved_models_path
 	dataset_base_path = args.dataset_dir
+	result_path = args.result_path
 	elbow_selections_path = args.elbow_selections_path
 
 	# otherwise load elbow selection, saliency maps and initial accuracies
@@ -31,7 +32,7 @@ def main(args):
 				continue
 			else:
 				print("loading attribution as well...", end="\t")
-				XAI_results = np.load(os.path.join(result_dir, current_dataset+"_results.npz"),
+				XAI_results = np.load(os.path.join(explanation_dir, current_dataset+"_results.npz"),
 									  allow_pickle=True)['results'].item()
 				print("loaded!\n")
 
@@ -50,14 +51,14 @@ def main(args):
 			pprint(current_accuracies ,indent=4)
 			all_accuracies[current_dataset] = current_accuracies
 
-			np.save( os.path.join(result_dir, "all_accuracies.npy"),all_accuracies)
-
+			np.save( result_path ,all_accuracies)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument("result_dir", type=str, help="dir where explanation results are stored")
+	parser.add_argument("explanation_dir", type=str, help="dir where explanation results are stored")
 	parser.add_argument("saved_models_path", type=str, help="folder where models will be saved")
 	parser.add_argument("dataset_dir", type=str, help="directory where datasets are located.")
+	parser.add_argument("result_path", type=str, help="path where to store new accuracies")
 	parser.add_argument("elbow_selections_path", type=str, nargs="?", help="file path where elbow selections"
 																	 " are saved")
 	args = parser.parse_args()
