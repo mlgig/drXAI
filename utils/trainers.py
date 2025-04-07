@@ -12,10 +12,12 @@ def trainScore_hydra_gpu( dataset , device, batch_size ):
 
     # get different dataset parts
     X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
+    X_explain, y_explain =        dataset['explain_set']['X'] , dataset['explain_set']['y']
     X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
     # TODO do I need dataset only for score???
     data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
+    data_explain = Dataset(X_explain, y_explain, batch_size=batch_size, shuffle=False)
     data_test = Dataset(X_test, y_test, batch_size=batch_size, shuffle=False)
 
     # extract TS info
@@ -26,20 +28,24 @@ def trainScore_hydra_gpu( dataset , device, batch_size ):
     model = RidgeClassifier(transform=transform, device=device)
     model.fit(data_train, num_classes=n_classes)
 
+    acc_expl_set  =   model.score(data_explain)
     error_test_set  =   model.score(data_test)
+
     X_train_pred = model.predict_proba(data_train)
 
     #return   (1 - error_test_set.cpu().numpy().item()), X_train_pred, model
-    return   (1 - error_test_set.cpu().numpy().item()), model
+    return   (1 - error_test_set.cpu().numpy().item()),  (1 - acc_expl_set.cpu().numpy().item()), model
 
 
 def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
 
     # get different dataset parts
     X_train, y_train =      dataset['train_set']['X'] , dataset['train_set']['y']
+    X_explain, y_explain =        dataset['explain_set']['X'] , dataset['explain_set']['y']
     X_test, y_test =        dataset['test_set']['X'] , dataset['test_set']['y']
 
     data_train = Dataset(X_train, y_train, batch_size=batch_size, shuffle=True)
+    data_explain = Dataset(X_explain, y_explain, batch_size=batch_size, shuffle=False)
     data_test = Dataset(X_test, y_test, batch_size=batch_size, shuffle=False)
 
     # extract TS info
@@ -49,33 +55,68 @@ def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
     model = MyMiniRocket(n_channels=n_channels,seq_len=seq_len,n_classes=n_classes, device=device)
     model.train(data_train)
 
-    acc_test_set = model.score(data_test)
+    acc_expl_set  =   model.score(data_explain)
+    acc_test_set    =    model.score(data_test)
     X_train_pred = model.predict_proba(data_train)
 
 #    return acc_test_set.item(), X_train_pred, model
-    return acc_test_set.item(), model
+    return acc_test_set.item(), acc_expl_set.item(), model
 
 
 
 def train_ConvTran( dataset , device, batch_size, verbose=False ):
 
-    train_loader, val_loader, dev_dataset,test_loader = load_data_ConvTran(
-        dataset, batch_size=batch_size)
+    train_loader, val_loader, dev_dataset = load_data_ConvTran(
+        dataset['train_set'], isTrain=True, batch_size=batch_size)
+    explain_loader , _ , _=   load_data_ConvTran( dataset['explain_set'], isTrain=False, batch_size=batch_size)
+    test_loader, _ , _  =   load_data_ConvTran( dataset['test_set'], isTrain=False, batch_size=batch_size)
 
     convTran, hyperParams = build_train_ConvTran(train_loader, val_loader, dev_dataset, device=device,
                                                  save_path=None,verbose=verbose)
     convTran.eval()
 
+    accuracy_explSet = convTran.score(explain_loader)
     accuracy_testSet = convTran.score(test_loader)
     X_train_pred = convTran.predict_proba(train_loader)
 
     #return accuracy_testSet.item(), X_train_pred, convTran
-    return accuracy_testSet.item(), convTran
+    return accuracy_testSet.item(),accuracy_explSet.item(), convTran
 
 
 
 trainer_list = [
-    ('ConvTran', train_ConvTran),
     ('hydra', trainScore_hydra_gpu),
+    ('ConvTran', train_ConvTran),
     ('miniRocket', train_Minirocket_ridge_GPU),
 ]
+
+
+batch_sizes = {
+    'hydra' :  128,
+    'ConvTran' :  32,
+    'miniRocket' : 64,
+}
+
+
+############################# handle special cases #################################
+special_cases = {
+    ('EigenWorms' , 'ConvTran') : 'skip',
+    ('PenDigits', 'miniRocket') : 'skip',
+    ('MotorImagery', 'ConvTran') : 16 ,
+    ('Tiselac', 	'ConvTran') :  4096,
+    ('PenDigits', 	'ConvTran') :  1024
+}
+
+
+def ToSkip_batchSize(current_dataset,clf_name):
+    # initialize to default parameters
+    to_skip = False
+    batch_size = batch_sizes[clf_name]
+
+    if (current_dataset,clf_name) in special_cases:
+        if special_cases[(current_dataset,clf_name)]=='skip':
+            to_skip = True
+        else:
+            batch_size = special_cases[(current_dataset,clf_name)]
+
+    return  to_skip, batch_size

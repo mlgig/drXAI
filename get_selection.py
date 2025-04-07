@@ -6,8 +6,8 @@ from threading import Thread, Event
 
 from utils.trainers import trainer_list
 from utils.data_utils import *
-from utils.batchSizes_exceptions import batch_sizes as batches_dict, ToSkip_batchSize
-from explanations import windowSHAP_explanations, tsCaptum_selection
+from utils.trainers import batch_sizes as batches_dict, ToSkip_batchSize
+from explanations import windowSHAP_selection, tsCaptum_selection
 from utils.backgrounds import class_prototypes_avg, smote_avg, equal_distributed_proba
 
 # TODO same datatype or numpy array for predict and also for score?
@@ -24,29 +24,31 @@ def main(args):
 
 	# get device, set random seed and instantiate result data structure
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	torch.manual_seed(random_seed)
+	torch.manual_seed(random_seed)	; np.random.seed(random_seed)
 
 	# load dataset
 	# TODO hard coded
-	for dir_n in [ "Multivariate_ts", "others_new", "others_MTSCcom"]:
-		for current_dataset in  sorted(os.listdir(os.path.join(base_path,dir_n))): # datasets:
+	for dir_n in [ "Multivariate_ts", "others_new", "others_MTSCcom"] :
+		for current_dataset in sorted(os.listdir(os.path.join(base_path,dir_n))): # datasets:
+
+			print("\n\n current loaded dataset is", current_dataset,  end='...\t')
 
 			results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
 			dataset_dir =  os.path.join(base_path,dir_n,current_dataset)
 			data = load_datasets(dataset_dir, current_dataset)
 
-			print("\n\n current loaded dataset is....", current_dataset)
-
 			# TODO hard coded
 			if data['train_set']['X'].shape[1] < 8:
-				print("skipped because the dataset is too small")
+				print("skipped because the dataset have not enough channels")
 				continue
 			else:
-				print("loaded")
+				print("loaded.\nSamples for train, explain and test set are respectively\t",
+					  data['train_set']['X'].shape[0], data['explain_set']['X'].shape[0] ,data['test_set']['X'].shape[0]
+					  )
+
 
 			# create an entry in result's data structure. Save 'symbolic label -> numeric label' map
 			results = {'labels_map' : data['labels_map']}
-
 			############################# train ####################################
 			# train current classifier
 			for model_name, trainer in trainer_list:
@@ -58,20 +60,24 @@ def main(args):
 				else:
 					# if not to skip record accuracy and save model to disk
 					start_time = timeit.default_timer()
-					current_accuracy , model = trainer(dataset=data, device=device, batch_size=batch_size)
+					current_accuracy_test, current_accuracy_explain , model = trainer(dataset=data, device=device, batch_size=batch_size)
 					training_time = timeit.default_timer() - start_time
+					#training_time = - 1  ; current_accuracy = -1
 
 					file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
+					#model = torch.load(os.path.join(saved_models_dir,file_name))
 					torch.save(model, os.path.join(saved_models_dir,file_name))
 
 				results[model_name] = {
-					"training_time" : training_time,
-					'accuracy' : current_accuracy
+					'training_time' : training_time,
+					'accuracy_explain'	: current_accuracy_explain,
+					'accuracy_test' : current_accuracy_test
 				}
+
 
 				################################ explain ###########################################
 				# get explaining set's features and labels
-				X_to_explain , labels = data['train_set']['X'] , data['train_set']['y']
+				X_to_explain , labels = data['explain_set']['X'] , data['explain_set']['y']
 
 				# define backgrounds to be tested
 				backgrounds = [
@@ -86,8 +92,10 @@ def main(args):
 					results[model_name][b_name] = {}
 
 					for alg in ['Feature_Ablation' ,'Shapley_Value_Sampling']:
-						ch_selections, attribution, exp_time = tsCaptum_selection(model=model,X=X_to_explain,y=labels,
+						ch_selections, attribution,backg_out, exp_time = tsCaptum_selection(model=model,X=X_to_explain,y=labels,
 							batch_size=batch_size,background=background,explainer_name=alg, return_saliency=True)
+
+						results[model_name][b_name]['model_output'] = backg_out
 
 						# save saliency map, selections,
 						results[model_name][b_name][alg] = {

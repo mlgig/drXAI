@@ -3,7 +3,7 @@ import timeit
 import os
 import torch
 from .trainers import trainer_list
-from .batchSizes_exceptions import ToSkip_batchSize
+from .trainers import ToSkip_batchSize
 from copy import deepcopy
 
 
