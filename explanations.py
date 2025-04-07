@@ -3,7 +3,23 @@ from tsCaptum.explainers import Feature_Ablation, Shapley_Value_Sampling
 from windowshap import MyWindowSHAP
 import timeit
 from utils.channels_extraction import _detect_knee_point
+import torch
 
+def extract_selection_absFirst(attribution):
+	"""
+	function to extract relevant time points/channels out of a saliency maps
+	:param attribution:		the saliency map where to extract relevant attribution
+	:return: 				selected channels
+	"""
+
+	attribution = np.abs(attribution)
+	chs_relevance = np.average(np.average(attribution , axis=-1),axis=0)
+
+	ordered_scores_idx = lambda x : ( np.flip(np.sort(x).tolist()) , np.flip(np.argsort(x)).tolist() )
+	ordered_relevance, ordered_idx = ordered_scores_idx(chs_relevance)
+	knee_selection = _detect_knee_point(ordered_relevance,ordered_idx )
+
+	return knee_selection
 
 def extract_selection_attribution(attribution, abs):
 	"""
@@ -35,12 +51,15 @@ def extract_selection_attribution(attribution, abs):
 				ordered_relevance[:negative_start_idx],
 				ordered_idx[:negative_start_idx]
 			)
+
 			neg_knee_selection = _detect_knee_point(
 				np.flip(np.abs(ordered_relevance[negative_start_idx:])),
-				np.flip(ordered_idx[negative_start_idx:])
-			)
+				np.flip(ordered_idx[negative_start_idx:]) )
+
+
 			print( "pos:",len(pos_knee_selection),"out of", len(ordered_relevance[:negative_start_idx]) ,
 				   "neg:",len(neg_knee_selection),"out of", len(ordered_relevance[negative_start_idx:]))
+
 			knee_selection = np.concatenate( ( pos_knee_selection , neg_knee_selection) ).tolist()
 
 	return knee_selection
@@ -94,37 +113,46 @@ def get_elbow_selections(current_data,elbows):
 
 ###################################	explainers #############################################
 
-def windowSHAP_explanations(current_experiment,model, X_explain, to_terminate,background_data):
-	# so far hard coded 0 baseline # TODO get more baselines
+def windowSHAP_selection(model, X_explain, background_data, return_saliency=True, to_terminate=None):
+
+	# so far hard coded 0 baseline
+	# TODO do i need to_terminate param ???
+	# TODO do I need return_saliency param???
 	n_instances, n_channels ,n_time_points = X_explain.shape
-	w_len =  int(n_time_points/5)	; stride = max(int(n_time_points/10),1)
-	print(w_len,stride)
-
-	current_experiment['Window_SHAP'] = {
-		'window_len' :  w_len,
-		'stride' : stride,
-	}
-
-	start_exp = timeit.default_timer()
-
+	w_len =  np.ceil(n_time_points/3).astype(int).item()	; stride = np.ceil(n_time_points/5).astype(int).item()
 	saliency_maps = []
+
+
 	# explain instance by instance
-	for i in range(X_explain.shape[0]):
+	start_time = timeit.default_timer()
+	for i in range(n_instances):
+		print(i, "out of",n_instances)
 		current_saliency_map = MyWindowSHAP(model.predict_proba, test_data = X_explain[i:i+1],
 				background_data = background_data,window_len = w_len, stride = stride, method = 'sliding').shap_values()
 		saliency_maps.append(current_saliency_map)
 		# is termination flag has been set by the main thread break the loo[
-		if to_terminate.is_set():
-			current_experiment['Window_SHAP']['timeout'] = True
-			print("WindowSHAP has run out of time")
-			break
+		#if to_terminate.is_set():
+		#	current_experiment['Window_SHAP']['timeout'] = True
+		#	print("WindowSHAP has run out of time")
+		#	break
+	tot_time = timeit.default_timer() - start_time
 
-	# before exiting from function save results and elapsed time
-	current_experiment['Window_SHAP']['results'] = np.concatenate(saliency_maps)
-	current_experiment['Window_SHAP']['explaining_time'] = (timeit.default_timer()- start_exp)
+	saliency_maps = np.concatenate( saliency_maps )
 
+	selections = []
+	for absolute in [True, False]:
+		selection = extract_selection_attribution(saliency_maps, abs=absolute)
+		selections.append( selection )
+	selections.append( extract_selection_absFirst(saliency_maps))
+
+	# return accordingly to parameters
+	to_return = (selections, saliency_maps,tot_time) if return_saliency else (selections,tot_time)
+
+	return to_return
 
 def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, return_saliency):
+
+	# TODO do I need return_saliency param???
 
 	# check explainer to be used
 	if explainer_name=='Feature_Ablation':
@@ -135,19 +163,26 @@ def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, retur
 		raise ValueError("only Feature_Ablation and Shapley_Value_Sampling are allowed")
 
 	explainer = algo(model)
-	#TODO n_segment is hard coded
+
+	#getting model output for current background
+	background_output = (explainer._Forwarder.forward( torch.tensor(background) )
+						 .detach().cpu().numpy())
+
 	start_time = timeit.default_timer()
-	saliency_map = explainer.explain(samples=X, labels=y, n_segments=1,normalise=True,
+	#TODO n_segment is hard coded
+	saliency_map = explainer.explain(samples=X, labels=y, n_segments=1,normalise=False,
 											baseline=background,batch_size=batch_size)
 	tot_time = timeit.default_timer() - start_time
 
+	#TODO should we change this??
 	selections = []
 	for absolute in [True, False]:
 		selection = extract_selection_attribution(saliency_map, abs=absolute)
 		selections.append( selection )
+	selections.append( extract_selection_absFirst(saliency_map))
 
 	# return accordingly to parameters
-	to_return = (selections, saliency_map,tot_time) if return_saliency else (selections,tot_time)
+	to_return = (selections, saliency_map, background_output, tot_time) if return_saliency else (selections,tot_time)
 
 	return to_return
 
