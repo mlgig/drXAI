@@ -166,7 +166,7 @@ def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, retur
 
 	start_time = timeit.default_timer()
 	#TODO n_segment is hard coded
-	saliency_map = explainer.explain(samples=X, labels=y, n_segments=1,normalise=False,
+	saliency_map = explainer.explain(samples=X, labels=y, n_segments=10,normalise=False,
 											baseline=background,batch_size=batch_size)
 	tot_time = timeit.default_timer() - start_time
 

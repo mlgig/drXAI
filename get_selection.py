@@ -4,9 +4,8 @@ import argparse
 from threading import Thread, Event
 
 
-from utils.trainers import trainer_list
 from utils.data_utils import *
-from utils.batchSizes_exceptions import batch_sizes as batches_dict, ToSkip_batchSize
+from utils.trainers import *
 from explanations import windowSHAP_selection, tsCaptum_selection
 from utils.backgrounds import class_prototypes_avg, smote_avg, equal_distributed_proba
 

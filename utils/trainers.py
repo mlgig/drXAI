@@ -52,7 +52,7 @@ def train_Minirocket_ridge_GPU(  dataset , device, batch_size ):
     acc_test_set = model.score(data_test)
     X_train_pred = model.predict_proba(data_train)
 
-#    return acc_test_set.item(), X_train_pred, model
+    #    return acc_test_set.item(), X_train_pred, model
     return acc_test_set.item(), model
 
 
@@ -74,8 +74,42 @@ def train_ConvTran( dataset , device, batch_size, verbose=False ):
 
 
 
+
+
+
 trainer_list = [
-    ('ConvTran', train_ConvTran),
-    ('hydra', trainScore_hydra_gpu),
+#    ('hydra', trainScore_hydra_gpu),
     ('miniRocket', train_Minirocket_ridge_GPU),
+    ('ConvTran', train_ConvTran),
 ]
+
+
+batch_sizes = {
+    'hydra' :  128,
+    'ConvTran' :  32,
+    'miniRocket' : 64,
+}
+
+
+############################# handle special cases #################################
+special_cases = {
+    ('EigenWorms' , 'ConvTran') : 'skip',
+    ('PenDigits', 'miniRocket') : 'skip',
+    ('MotorImagery', 'ConvTran') : 16 ,
+    ('Tiselac', 	'ConvTran') :  4096,
+    ('PenDigits', 	'ConvTran') :  1024
+}
+
+
+def ToSkip_batchSize(current_dataset,clf_name):
+    # initialize to default parameters
+    to_skip = False
+    batch_size = batch_sizes[clf_name]
+
+    if (current_dataset,clf_name) in special_cases:
+        if special_cases[(current_dataset,clf_name)]=='skip':
+            to_skip = True
+        else:
+            batch_size = special_cases[(current_dataset,clf_name)]
+
+    return  to_skip, batch_size
