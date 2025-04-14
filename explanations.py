@@ -164,10 +164,6 @@ def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, retur
 
 	explainer = algo(model)
 
-	#getting model output for current background
-	background_output = (explainer._Forwarder.forward( torch.tensor(background) )
-						 .detach().cpu().numpy())
-
 	start_time = timeit.default_timer()
 	#TODO n_segment is hard coded
 	saliency_map = explainer.explain(samples=X, labels=y, n_segments=1,normalise=False,
@@ -182,7 +178,7 @@ def tsCaptum_selection(model, X, y, batch_size,background, explainer_name, retur
 	selections.append( extract_selection_absFirst(saliency_map))
 
 	# return accordingly to parameters
-	to_return = (selections, saliency_map, background_output, tot_time) if return_saliency else (selections,tot_time)
+	to_return = (selections, saliency_map, tot_time) if return_saliency else (selections,tot_time)
 
 	return to_return
 

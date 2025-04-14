@@ -7,7 +7,7 @@ from threading import Thread, Event
 from utils.trainers import trainer_list
 from utils.data_utils import *
 from utils.batchSizes_exceptions import batch_sizes as batches_dict, ToSkip_batchSize
-from explanations import windowSHAP_explanations, tsCaptum_selection
+from explanations import windowSHAP_selection, tsCaptum_selection
 from utils.backgrounds import class_prototypes_avg, smote_avg, equal_distributed_proba
 
 # TODO same datatype or numpy array for predict and also for score?
@@ -28,7 +28,7 @@ def main(args):
 
 	# load dataset
 	# TODO hard coded
-	for dir_n in [ "Multivariate_ts", "others_new", "others_MTSCcom"]:
+	for dir_n in [ "Univariate_ts", "others_MTSCcom"]:
 		for current_dataset in  sorted(os.listdir(os.path.join(base_path,dir_n))): # datasets:
 
 			results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
@@ -38,7 +38,7 @@ def main(args):
 			print("\n\n current loaded dataset is....", current_dataset)
 
 			# TODO hard coded
-			if data['train_set']['X'].shape[1] < 8:
+			if False:
 				print("skipped because the dataset is too small")
 				continue
 			else:
@@ -91,11 +91,21 @@ def main(args):
 
 						# save saliency map, selections,
 						results[model_name][b_name][alg] = {
-							'selected_channels_absolute' : ch_selections[0],
-							'selected_channels_PosNeg' : ch_selections[1],
+							#'selected_channels_absolute' : ch_selections[0],
+							#'selected_channels_PosNeg' : ch_selections[1],
 							'saliency_map' : attribution,
 							'explaining_time' : exp_time
 						}
+
+					ch_selections, attribution, exp_time = windowSHAP_selection(model,X_to_explain,background)
+
+					# save saliency map, selections,
+					results[model_name][b_name]['WindowSHAP'] = {
+						#'selected_channels_absolute' : ch_selections[0],
+						#'selected_channels_PosNeg' : ch_selections[1],
+						'saliency_map' : attribution,
+						'explaining_time' : exp_time
+					}
 
 						# use threading for windowSHAP
 					#to_terminate = Event()
