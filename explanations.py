@@ -177,27 +177,4 @@ def get_elbow_selections(current_data,elbows):
 	}
 
 
-def get_AI_selections(saliency_map_dict, selection_dict, accuracies, info):
-	# TODO find a better name
-	# TODO move  these functions somewhere else?
-
-	for k in saliency_map_dict.keys():
-		if k=='labels_map':
-			continue
-		if k=='accuracy':
-			accuracies[info[1:]] = saliency_map_dict[k]
-		# TODO adjust 'selected_features/channels' to automatically adapt (use channel_selection flag)
-		elif k.startswith('selected_features_'):
-			k_name = k.replace('selected_features_','')
-			model, explainer = info.split("_")[1] , "_".join( info.split("_")[2:] )
-			if saliency_map_dict[k]!=[]:
-				selection_dict[model]["_".join(( explainer,k_name) )] = saliency_map_dict[k]
-
-
-		elif type(saliency_map_dict[k])==dict :
-			get_AI_selections(
-				saliency_map_dict[k],selection_dict,accuracies,
-				info+"_"+str(k))
-
-	return selection_dict, accuracies
 

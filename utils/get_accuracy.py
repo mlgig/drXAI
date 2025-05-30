@@ -2,12 +2,12 @@ import numpy as np
 import timeit
 import os
 import torch
-from .trainers import trainer_list
-from .trainers import ToSkip_batchSize
 from copy import deepcopy
 
+from .trainers import trainer_list
+from  .helpers import extract_timePoints
 
-def get_accuracies(original_data,save_models_path, channel_selections, initial_accuracies=None):
+def get_accuracies(original_data,save_models_path, selections, initial_accuracies=None,channel_selection=True):
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -16,28 +16,26 @@ def get_accuracies(original_data,save_models_path, channel_selections, initial_a
 	accuracies = {	'accuracies'	: {}	}
 	current_dataset_dict = accuracies['accuracies']
 
-	for clf_name, trainer in trainer_list:
+	for clf_name, trainer,batch_size in trainer_list:
 
 		# if the initial accuracy was provided initialize the dictionary using the 'all_channels' (aka initial) accuracy
 		# otherwise the dictionary should be empty
-		current_dataset_dict[clf_name] = {} if initial_accuracies is None else {
-			'initial_accuracy' : initial_accuracies[clf_name] #['all_channels']
+		current_dataset_dict[clf_name] = {} if initial_accuracies is None or clf_name not in initial_accuracies.keys() else {
+			'initial_accuracy' : initial_accuracies[clf_name]
 		}
 
-		for exp_name, selection in channel_selections[clf_name].items():
+		for exp_name, selection in selections[clf_name].items():
 			# accuracies vector
 			current_dataset_accs = np.zeros(shape=(5,))
 
 			# get current selected channels
 			data  = deepcopy(original_data)
-			data['train_set']['X'] = data['train_set']['X'][:,selection,:]
-			data['test_set']['X'] = data['test_set']['X'][:,selection,:]
-
-			#print("current selection is",selection, data['train_set']['X'].shape, data['train_set']['X'].shape)
-			# check if current combination of dataset and model is a special case
-			to_skip, batch_size = ToSkip_batchSize(current_dataset, clf_name)
-			if to_skip:
-				continue
+			if channel_selection:
+				data['train_set']['X'] = data['train_set']['X'][:,selection,:]
+				data['test_set']['X'] = data['test_set']['X'][:,selection,:]
+			else:
+				data['train_set']['X'] = extract_timePoints( data['train_set']['X'], selection )
+				data['test_set']['X'] = extract_timePoints( data['test_set']['X'], selection )
 
 			saved_models_path = os.path.join(save_models_path, "_".join((current_dataset,clf_name,exp_name))+".pth")
 
@@ -48,7 +46,6 @@ def get_accuracies(original_data,save_models_path, channel_selections, initial_a
 				total_time = timeit.default_timer() - star_time
 				current_dataset_accs[i] = current_accuracy
 
-				# TODO optional hyperparam??
 				# save best model
 				if max(current_dataset_accs)==current_accuracy:
 					torch.save(model,saved_models_path)

@@ -61,6 +61,3 @@ Arguments:
 > result_path : path where to store new accuracies
 
 > --elbow_selections_path : file path where elbow selections are saved
-
-> --channel_selection : whether to perform channel selection or not (perform time point selection)
-
