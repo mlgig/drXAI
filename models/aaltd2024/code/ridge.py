@@ -280,8 +280,6 @@ class RidgeClassifier():
             predictions = np.concatenate(predictions)
 
         elif isinstance(data, np.ndarray):
-            # TODO avoid conversion to np.ndarray then back to torch.Tensor etc.?
-            #data = data.detach().cpu().numpy()
             predictions =  softmax ( self._predict(data) , dim=-1).cpu().numpy()
 
         else:

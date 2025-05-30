@@ -1,9 +1,3 @@
-import timeit
-import torch
-import numpy as np
-
-from torch.cuda import empty_cache as empty_gpu_cache
-from torch.utils.data import  DataLoader
 import torch.nn as nn
 
 from .tsai.MINIROCKET_Pytorch import MiniRocketFeatures, get_minirocket_features
@@ -13,7 +7,6 @@ from .aaltd2024.code.ridge import RidgeClassifier
 class MyMiniRocket(nn.Module):
 
     def __init__(self, n_channels,seq_len,n_classes,chunk_size=32, device="cpu", verbose=False):
-        # TODO implement the (non) verbose mode
         super(MyMiniRocket, self).__init__()
 
         self.n_channels = n_channels

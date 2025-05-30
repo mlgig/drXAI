@@ -151,7 +151,7 @@ class SupervisedTrainer(BaseTrainer):
         predictions = torch.argmax(probs, dim=1).cpu().numpy()  # (total_samples,) int class index for each sample
         probs = probs.cpu().numpy()
         targets = np.concatenate(per_batch['targets'], axis=0).flatten()
-        class_names = np.arange(probs.shape[1])  # TODO: temporary until I decide how to pass class names
+        class_names = np.arange(probs.shape[1])
         metrics_dict = self.analyzer.analyze_classification(predictions, targets, class_names)
 
         self.epoch_metrics['accuracy'] = metrics_dict['total_accuracy']  # same as average recall over all classes

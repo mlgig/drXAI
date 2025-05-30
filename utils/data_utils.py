@@ -1,11 +1,10 @@
 import os
 import numpy as np
-import torch
-
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader
 from aeon.datasets import load_from_ts_file
+
 from models.ConvTran.utils import dataset_class
 
 def load_datasets(dataset_dir, current_dataset ):
@@ -46,57 +45,7 @@ def to_numeric_labels(y_train, y_test):
 	return  y_train, y_test,  le.classes_
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# TODO remove following function!
-def extract_explain_set(X_train, data, explain_set_ratio, y_train):
-
-	# set explaining set info accordingly
-	# if its ratio>0 do a real division
-	if explain_set_ratio > 0:
-
-		# split train into train and 'explaining set'
-		X_train, y_train, train_indices, X_explain, y_explain, val_indices = split_dataset(
-			X_train, y_train, validation_ratio=explain_set_ratio, random_state=42
-		)
-		data['train_set']['indices'] = train_indices
-		data['explain_set']['indices'] = val_indices
-		data['explain_set']['X'] = X_explain
-
-	else:
-		# is ratio=0 set X and y to empty tensors
-		X_explain = torch.tensor([])
-		y_explain = None
-
-	return X_explain, X_train, y_explain, y_train
-
-
-
-
-
-
-
-
-
-
+################################ ConvTran functions #######################################
 
 def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=32):
 
@@ -120,9 +69,6 @@ def load_data_ConvTran(dataset , val_ratio=0.25, batch_size=32):
 	test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, pin_memory=True)
 
 	return train_loader, val_loader, dev_dataset, test_loader
-
-
-
 
 
 

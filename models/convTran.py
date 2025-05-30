@@ -21,7 +21,6 @@ default_hyperparams = {
 }
 
 def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
-	# TODO verbose flag?
 	if verbose:
 		logger.info("Creating model ...")
 	config['Data_shape'] = shape
@@ -41,7 +40,6 @@ def build_ConvTran_model(config,shape, n_labels, device="cuda", verbose=False):
 
 
 def build_train_ConvTran(train_loader,val_loader, dev_dataset, device, save_path=None, verbose=False):
-	# TODO save the tensorboard writer?
 	#tensorboard_writer = SummaryWriter('summary')
 	# get basic info and build the initial model
 	shape, n_labels = train_loader.dataset.feature.shape, np.unique(train_loader.dataset.labels).shape[0]
