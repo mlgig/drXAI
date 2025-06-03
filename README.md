@@ -24,7 +24,18 @@ measurable benefits, opening a path to applying XAI to other time series tasks.
 
 ## Results
 
-TBD
+Accuracy, hmean and selected features for each classifier, *drXAI* configuration, univariate and multivariate datasets 
+can be found in results directory as csv.
+
+### Plots 
+
+![image] (https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/channel_selection_diagram.png)
+
+**drXAI: Channel selection for MTSC using XAI scores computed from time series attributions.**
+
+![image] (https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/elbow_cut.png)
+
+**An example of elbow cut for channel selection.**
 
 ## Code 
 
