@@ -35,7 +35,7 @@ can be found in results directory as csv.
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/elbow_cut.png)
 
-**An example of elbow cut for channel selection.**
+**An example of elbow cut for channel selection.** <br>
 
 
 **Accuracy vs percentage of used data for original data *𝐷*, SOTA channel selection methods ECP, ECS and two
@@ -47,15 +47,15 @@ configurations of drXAI. All results here are for MTSC datasets and the MiniRock
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/miniRocket_accVSDataRed_BetterAccuracy.png)
 
-**(b) MTSC datasets where drXAI improves the original Acc.**
+**(b) MTSC datasets where drXAI improves the original Acc.**  <br>
 
-![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/Univariate_accVSdataSaved.png)
+![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/Univariate_accVSdataSaved.png) 
 
 **Accuracy vs percentage of used data for the original data and 4 drXAI configurations. All results here are for UTSC 
-datasets, 3 examples using the MiniRocket classifier and one using ConvTran.**
+datasets, 3 examples using the MiniRocket classifier and one using ConvTran.**  <br>
 
 
-**MTSC datasets: 𝑎𝑐𝑐 and ℎ𝑚𝑒𝑎𝑛 grouped by background and explainers and sorted by median value.**
+**MTSC datasets: 𝑎𝑐𝑐 and ℎ𝑚𝑒𝑎𝑛 grouped by background and explainers and sorted by median value.** 
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/MTSC_cofigs_accs.png)
 
@@ -63,31 +63,31 @@ datasets, 3 examples using the MiniRocket classifier and one using ConvTran.**
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/MTSC_cofigs_hmean.png)
 
-**drXAI variants: *hmean* for MTSC data**
+**drXAI variants: *hmean* for MTSC data**  <br>
 
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/MTSC_background_runnning_time.png)
 
-**Running time (log scale, mins) of FA vs SVS explainers for MTSC data.**
+**Running time (log scale, mins) of FA vs SVS explainers for MTSC data.**  <br>
 
 
 
 **UTSC datasets: *acc* and *ℎ𝑚𝑒𝑎𝑛* results grouped by background and explainers.**
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/Uni_acc_backgrounds.png)
 
-** *acc* by Background **
+***acc* by Background.**
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/Uni_acc_explainers.png)
 
-** *acc* by Explainer **
+***acc* by Explainer.**
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/Uni_h_backgrounds.png)
 
-** *hmean* by Background **
+***hmean* by Background.**
 
 ![image](https://github.com/davide-serramazza/drXAI-CIKM2025/blob/main/plots/Uni_h_explainers.png)
 
-** *hmean* by Explainer **
+***hmean* by Explainer.**
 
 ## Code 
 
