@@ -24,36 +24,38 @@ def main(args):
 
 	# load dataset
 	all_accuracies = {}
-	for dir_name in sorted(os.listdir(args.dataset_dir)):
-		for current_dataset in sorted(os.listdir(os.path.join(args.dataset_dir,dir_name) ) ):
+	for current_dataset in sorted(os.listdir(args.dataset_dir ) ):
 
-			# load current dataset
-			print("loading ", current_dataset,"...",end="\t")
-			dataset_dir =  os.path.join(dataset_base_path,dir_name,current_dataset)
-			data = load_datasets(dataset_dir, current_dataset)
-			print("Dataset loaded! \n Loading explanations...")
+		# load current dataset
+		print("loading ", current_dataset,"...",end="\t")
+		dataset_dir =  os.path.join(dataset_base_path,current_dataset)
+		data = load_datasets(dataset_dir, current_dataset)
+		print("Dataset loaded! \n Loading explanations...")
 
-			XAI_results = np.load(os.path.join(explanation_dir, current_dataset+"_results.npz"),
-									  allow_pickle=True)['results'].item()
-			print("Explanations loaded!")
+		XAI_results = np.load(os.path.join(explanation_dir, current_dataset+"_results.npz"),
+								  allow_pickle=True)['results'].item()
+		print("Explanations loaded!")
 
-			# get elbow selections and AI's ones
-			elbow_selections = get_elbow_selections(current_dataset,all_elbow_selections) if channel_selection else {}
-			all_selections, init_accuracies = get_computed_AI_selections(XAI_results,{
-				'ConvTran' : deepcopy(elbow_selections),
-				'miniRocket': deepcopy(elbow_selections),
-				'hydra' : deepcopy(elbow_selections)
-			},{},"", channel_selection)
-
-
-			# train models on selected dataset versions
-			current_accuracies = get_accuracies(data,saved_models_path, all_selections, init_accuracies,channel_selection)
-			pprint(current_accuracies ,indent=4)
-			all_selections[current_dataset] = current_accuracies
-
-			np.save( result_path ,all_selections)
+		# get elbow selections and AI's ones
+		elbow_selections = get_elbow_selections(current_dataset,all_elbow_selections) if channel_selection else {}
+		all_selections, init_accuracies = get_computed_AI_selections(XAI_results,{
+			'ConvTran' : deepcopy(elbow_selections),
+			'miniRocket': deepcopy(elbow_selections),
+			'hydra' : deepcopy(elbow_selections)
+		},{},"", channel_selection)
 
 
+		# train models on selected dataset versions
+		current_accuracies = get_accuracies(data,saved_models_path, all_selections, init_accuracies,channel_selection)
+		pprint(current_accuracies ,indent=4)
+		all_accuracies[current_dataset] = current_accuracies
+
+		np.save( result_path ,all_accuracies)
+
+
+# TODO better selection for reduction type!
+# TODO what about initial accuracies?
+# TODO push utils.helper
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("explanation_dir", type=str, help="dir where explanation results are stored")

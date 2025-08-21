@@ -22,86 +22,85 @@ def main(args):
 	torch.manual_seed(random_seed)
 
 	# load dataset
-	for dir_name in sorted(os.listdir(args.dataset_dir)):
-		for current_dataset in sorted(os.listdir(os.path.join(args.dataset_dir,dir_name) ) ):
+	for current_dataset in sorted(os.listdir(args.dataset_dir ) ):
 
-			results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
-			dataset_dir =  os.path.join(base_path,dir_name,current_dataset)
-			data = load_datasets(dataset_dir, current_dataset)
+		results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
+		dataset_dir =  os.path.join(base_path,current_dataset)
+		data = load_datasets(dataset_dir, current_dataset)
 
-			print("\n\n current loaded dataset is....", current_dataset)
+		print("\n\n current loaded dataset is....", current_dataset)
 
-			# create an entry in result's data structure. Save 'symbolic label -> numeric label' map
-			results = {'labels_map' : data['labels_map']}
+		# create an entry in result's data structure. Save 'symbolic label -> numeric label' map
+		results = {'labels_map' : data['labels_map']}
 
-			############################# train ####################################
-			# train current classifier
-			for model_name, trainer, batch_size in trainer_list:
+		############################# train ####################################
+		# train current classifier
+		for model_name, trainer, batch_size in trainer_list:
 
-				# if not to skip record accuracy and save model to disk
-				start_time = timeit.default_timer()
-				current_accuracy , model = trainer(dataset=data, device=device, batch_size=batch_size)
-				training_time = timeit.default_timer() - start_time
+			# if not to skip record accuracy and save model to disk
+			start_time = timeit.default_timer()
+			current_accuracy , model = trainer(dataset=data, device=device, batch_size=batch_size)
+			training_time = timeit.default_timer() - start_time
 
-				file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
-				torch.save(model, os.path.join(saved_models_dir,file_name))
+			file_name = "_".join((current_dataset,model_name,"allChannel"))+".pth"
+			torch.save(model, os.path.join(saved_models_dir,file_name))
 
-				results[model_name] = {
-					"training_time" : training_time,
-					'accuracy' : current_accuracy
-				}
+			results[model_name] = {
+				"training_time" : training_time,
+				'accuracy' : current_accuracy
+			}
 
-				################################ explain ###########################################
-				# get explaining set's features and labels
-				X_to_explain , labels = data['train_set']['X'] , data['train_set']['y']
+			################################ explain ###########################################
+			# get explaining set's features and labels
+			X_to_explain , labels = data['train_set']['X'] , data['train_set']['y']
 
-				# define backgrounds to be tested
-				backgrounds = [
-					('zerosBackground', X_to_explain[0:1]*0	),
-					('smoteBackground',smote_avg(X_to_explain,labels)	),
-					('prototypesBackground' ,class_prototypes_avg(X_to_explain,labels)	),
-				]
+			# define backgrounds to be tested
+			backgrounds = [
+				('zerosBackground', X_to_explain[0:1]*0	),
+				('smoteBackground',smote_avg(X_to_explain,labels)	),
+				('prototypesBackground' ,class_prototypes_avg(X_to_explain,labels)	),
+			]
 
-				for b_name,background in backgrounds:
+			for b_name,background in backgrounds:
+				print(background.shape)
+				# for each background initialise result dict, then explain
+				results[model_name][b_name] = {}
 
-					# for each background initialise result dict, then explain
-					results[model_name][b_name] = {}
+				key_prefix = 'selected_channels_' if channel_selection else 'selected_timePoints_'
+				for alg in ['Feature_Ablation']: # ,'Shapley_Value_Sampling']:
+					ch_selections, attribution, exp_time = tsCaptum_selection(
+						model=model,X=X_to_explain,y=labels,batch_size=batch_size,background=background,
+						explainer_name=alg,channel_selection=channel_selection
+					)
 
-					key_prefix = 'selected_channels_' if channel_selection else 'selected_timePoints_'
-					for alg in ['Feature_Ablation' ,'Shapley_Value_Sampling']:
-						ch_selections, attribution, exp_time = tsCaptum_selection(
-							model=model,X=X_to_explain,y=labels,batch_size=batch_size,background=background,
-							explainer_name=alg,channel_selection=channel_selection
-						)
+					results[model_name][b_name][alg] = {
+						key_prefix+'averageFirst' : ch_selections[0],
+						key_prefix+'absoluteFirst' : ch_selections[1],
+						key_prefix+'intersection' : list(
+							set( ch_selections[0]).intersection(set(ch_selections[1]))
+						),
+						'saliency_map' : attribution,
+						'explaining_time' : exp_time
+					}
 
-						results[model_name][b_name][alg] = {
-							key_prefix+'averageFirst' : ch_selections[0],
-							key_prefix+'absoluteFirst' : ch_selections[1],
-							key_prefix+'intersection' : list(
-								set( ch_selections[0]).intersection(set(ch_selections[1]))
-							),
-							'saliency_map' : attribution,
-							'explaining_time' : exp_time
-						}
+				if not channel_selection:
+					ch_selections, attribution, exp_time = windowSHAP_selection(model,X_to_explain,background,
+																				channel_selection=channel_selection)
 
-					if not channel_selection:
-						ch_selections, attribution, exp_time = windowSHAP_selection(model,X_to_explain,background,
-																					channel_selection=channel_selection)
+					results[model_name][b_name]['WindowSHAP'] = {
+						key_prefix+'averageFirst' : ch_selections[0],
+						key_prefix+'absoluteFirst' : ch_selections[1],
+						key_prefix+'intersection' : list(
+							set( ch_selections[0]).intersection(set(ch_selections[1]))
+						),
+						'saliency_map' : attribution,
+						'explaining_time' : exp_time
+					}
 
-						results[model_name][b_name]['WindowSHAP'] = {
-							key_prefix+'averageFirst' : ch_selections[0],
-							key_prefix+'absoluteFirst' : ch_selections[1],
-							key_prefix+'intersection' : list(
-								set( ch_selections[0]).intersection(set(ch_selections[1]))
-							),
-							'saliency_map' : attribution,
-							'explaining_time' : exp_time
-						}
+					print('\t', model_name, b_name, 'combination computed')
 
-						print('\t', model_name, b_name, 'combination computed')
-
-					# dump result data structure on disk
-					np.savez_compressed(results_path, results=results)
+				# dump result data structure on disk
+				np.savez_compressed(results_path, results=results)
 
 
 def str2bool(v):
@@ -114,6 +113,11 @@ def str2bool(v):
 	else:
 		raise argparse.ArgumentTypeError('Boolean value expected.')
 
+
+# TODO classifier as argument i.e. remove trainer_list from utils.trainers
+# TODO drXAI as a class taking classifier, explainer, background , dataset.... something else?
+# TODO create a new venv and update requirements.txt
+# TODO to check baseline shape!!!!!!!!!  uni seems fine, multi is not		also check on git when i changed code for baseline
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
