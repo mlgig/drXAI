@@ -1,8 +1,7 @@
 # XAI in Action for Effective Data Reduction on Time Series
-## Submitted to CIKM 2025 Full Research track
 
-This repository contains code and experimental result for "XAI in Action for Effective Data Reduction on Time Series"
-submitted to CIKM 2025 
+This repository contains code and experimental result for our work "XAI in Action for Effective Data Reduction on Time Series"
+(under review) 
 
 ## Abstract 
 
