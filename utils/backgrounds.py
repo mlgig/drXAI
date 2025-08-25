@@ -18,8 +18,3 @@ def smote_avg(X_train, y_train):
     resampled_X, resampled_y = sm.fit_resample( X_train.reshape((n_instance, -1)),  y_train)
 
     return resampled_X.reshape( -1, n_channels, n_time_points ).mean(axis=0, keepdims=True)
-
-def equal_distributed_proba(X_train, X_train_pred):
-    idx = np.argmin(np.std(X_train_pred,axis=-1))
-
-    return X_train[idx:idx+1]

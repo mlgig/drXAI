@@ -112,6 +112,8 @@ def extract_selection_avgFirst(attribution, channels=False):
 	return knee_selection
 
 
+
+#TODO take out the following two functions
 ###################################	explainers #############################################
 
 def windowSHAP_selection(model, X_explain, background_data, channel_selection):
@@ -168,6 +170,7 @@ def tsCaptum_selection(model, X, y, batch_size,background, explainer_name,channe
 	return (selections, saliency_map, tot_time)
 
 
+#TODO move elsewhere?
 ################################## other functions ##############################################
 
 def get_elbow_selections(current_data,elbows):

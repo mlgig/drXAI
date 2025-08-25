@@ -3,8 +3,7 @@ import argparse
 
 from utils.data_utils import *
 from utils.trainers import *
-from explanations import windowSHAP_selection, tsCaptum_selection
-from utils.backgrounds import class_prototypes_avg, smote_avg
+from drXAI import drXAI
 
 def main(args):
 
@@ -51,47 +50,42 @@ def main(args):
 			}
 
 			################################ explain ###########################################
+
+			# TODO clean from here to the bottom!
+			# TODO add comments all over the script(s) (drXAI, compute_metrics, etc)
+
 			# get explaining set's features and labels
-			X_to_explain , labels = data['train_set']['X'] , data['train_set']['y']
+			X2explain , labels = data['train_set']['X'] , data['train_set']['y']
 
 			# define backgrounds to be tested
-			backgrounds = [
-				('zerosBackground', X_to_explain[0:1]*0	),
-				('smoteBackground',smote_avg(X_to_explain,labels)	),
-				('prototypesBackground' ,class_prototypes_avg(X_to_explain,labels)	),
-			]
+			#backgrounds = [
+			#	('zerosBackground', X_to_explain[0:1]*0	),
+			#	('smoteBackground',smote_avg(X_to_explain,labels)	),
+			#	('prototypesBackground' ,class_prototypes_avg(X_to_explain,labels)	),
+			#]
 
-			for b_name,background in backgrounds:
-				print(background.shape)
+			backgrounds2use = ["zeros","SMOTE","Proto"]
+			for b_name in backgrounds2use:
+
 				# for each background initialise result dict, then explain
 				results[model_name][b_name] = {}
 
 				key_prefix = 'selected_channels_' if channel_selection else 'selected_timePoints_'
-				for alg in ['Feature_Ablation']: # ,'Shapley_Value_Sampling']:
-					ch_selections, attribution, exp_time = tsCaptum_selection(
-						model=model,X=X_to_explain,y=labels,batch_size=batch_size,background=background,
-						explainer_name=alg,channel_selection=channel_selection
-					)
 
-					results[model_name][b_name][alg] = {
-						key_prefix+'averageFirst' : ch_selections[0],
-						key_prefix+'absoluteFirst' : ch_selections[1],
+				explainers2use = [ "Feature_Ablation", "SHAP"] if channel_selection  else  \
+					["Feature_Ablation", "SHAP","WindowSHAP"]
+				for e_name in explainers2use:
+					drxai = drXAI(channel_selection=channel_selection, classifier=model,dataset_X=X2explain,
+								  dataset_y=labels, explainer_name=e_name, background_name=b_name,
+								  explainer_kwargs={'batch_size':batch_size})
+					selections, attribution,exp_time = drxai.get_selection()
+
+
+					results[model_name][b_name][e_name] = {
+						key_prefix+'averageFirst' : selections[0],
+						key_prefix+'absoluteFirst' : selections[1],
 						key_prefix+'intersection' : list(
-							set( ch_selections[0]).intersection(set(ch_selections[1]))
-						),
-						'saliency_map' : attribution,
-						'explaining_time' : exp_time
-					}
-
-				if not channel_selection:
-					ch_selections, attribution, exp_time = windowSHAP_selection(model,X_to_explain,background,
-																				channel_selection=channel_selection)
-
-					results[model_name][b_name]['WindowSHAP'] = {
-						key_prefix+'averageFirst' : ch_selections[0],
-						key_prefix+'absoluteFirst' : ch_selections[1],
-						key_prefix+'intersection' : list(
-							set( ch_selections[0]).intersection(set(ch_selections[1]))
+							set( selections[0]).intersection(set(selections[1]))
 						),
 						'saliency_map' : attribution,
 						'explaining_time' : exp_time
@@ -114,10 +108,7 @@ def str2bool(v):
 		raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-# TODO classifier as argument i.e. remove trainer_list from utils.trainers
-# TODO drXAI as a class taking classifier, explainer, background , dataset.... something else?
-# TODO create a new venv and update requirements.txt
-# TODO to check baseline shape!!!!!!!!!  uni seems fine, multi is not		also check on git when i changed code for baseline
+# TODO classifier and batch_size as argument i.e. remove trainer_list from utils.trainers
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()

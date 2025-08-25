@@ -13,7 +13,6 @@ def main(args):
 	saved_models_path = args.saved_models_path
 	dataset_base_path = args.dataset_dir
 	result_path = args.result_file
-	#TODO elbow not be considered if channel_selection is False
 	elbow_selections_path = args.elbow_selections
 
 	channel_selection =  not (elbow_selections_path==None)
@@ -47,15 +46,14 @@ def main(args):
 
 		# train models on selected dataset versions
 		current_accuracies = get_accuracies(data,saved_models_path, all_selections, init_accuracies,channel_selection)
-		pprint(current_accuracies ,indent=4)
+		#pprint(current_accuracies ,indent=4)
 		all_accuracies[current_dataset] = current_accuracies
 
 		np.save( result_path ,all_accuracies)
 
 
 # TODO better selection for reduction type!
-# TODO what about initial accuracies?
-# TODO push utils.helper
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("explanation_dir", type=str, help="dir where explanation results are stored")
