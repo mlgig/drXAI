@@ -62,9 +62,8 @@ def train_ConvTran( dataset , device, batch_size, verbose=False ):
 
     return accuracy_testSet.item(), convTran
 
-
-trainer_list = [
-    ('hydra' ,        trainScore_hydra_gpu      , 128 ),
-    ('miniRocket',   train_Minirocket_ridge_GPU , 64),
-    ('ConvTran',     train_ConvTran             ,32),
-]
+trainer_dict = {
+    'hydra' 		:	trainScore_hydra_gpu  ,
+    'miniRocket'	:	train_Minirocket_ridge_GPU ,
+    'ConvTran'		:	train_ConvTran
+}

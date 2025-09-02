@@ -1,8 +1,5 @@
 import numpy as np
-import timeit
-from windowshap import MyWindowSHAP
 
-from tsCaptum.explainers import Feature_Ablation, Shapley_Value_Sampling
 from utils.channels_extraction import _detect_knee_point
 
 ####################### functions to extract and order time points selection ##############
@@ -113,64 +110,8 @@ def extract_selection_avgFirst(attribution, channels=False):
 
 
 
-#TODO take out the following two functions
-###################################	explainers #############################################
-
-def windowSHAP_selection(model, X_explain, background_data, channel_selection):
-
-	n_instances, n_channels ,n_time_points = X_explain.shape
-	w_len =  np.ceil(n_time_points/6).astype(int).item()	; stride = np.ceil(n_time_points/10).astype(int).item()
-	saliency_maps = []
-
-	# explain instance by instance
-	start_time = timeit.default_timer()
-	for i in range(n_instances):
-		print(i, "out of",n_instances,"instances explained")
-		current_saliency_map = MyWindowSHAP(model.predict_proba, test_data = X_explain[i:i+1],
-				background_data = background_data,window_len = w_len, stride = stride, method = 'sliding').shap_values()
-		saliency_maps.append(current_saliency_map)
-
-	tot_time = timeit.default_timer() - start_time
-
-	saliency_maps = np.concatenate( saliency_maps )
-
-	selections = [
-		extract_selection_avgFirst(saliency_maps,channels=channel_selection),
-		extract_selection_absFirst(saliency_maps,channels=channel_selection)
-	]
-
-	return (selections, saliency_maps,tot_time)
 
 
-
-def tsCaptum_selection(model, X, y, batch_size,background, explainer_name,channel_selection):
-
-	# check explainer to be used
-	if explainer_name=='Feature_Ablation':
-		algo = Feature_Ablation
-	elif explainer_name=='Shapley_Value_Sampling':
-		algo = Shapley_Value_Sampling
-	else:
-		raise ValueError("only Feature_Ablation and Shapley_Value_Sampling are allowed")
-
-	explainer = algo(model)
-
-	start_time = timeit.default_timer()
-
-	n_segment = 1 if channel_selection else 20
-	saliency_map = explainer.explain(samples=X, labels=y, n_segments=n_segment,normalise=False,
-											baseline=background,batch_size=batch_size)
-	tot_time = timeit.default_timer() - start_time
-
-	selections = [
-		extract_selection_avgFirst(saliency_map,channels=channel_selection),
-		extract_selection_absFirst(saliency_map,channels=channel_selection)
-	]
-
-	return (selections, saliency_map, tot_time)
-
-
-#TODO move elsewhere?
 ################################## other functions ##############################################
 
 def get_elbow_selections(current_data,elbows):

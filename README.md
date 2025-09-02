@@ -23,8 +23,12 @@ measurable benefits, opening a path to applying XAI to other time series tasks.
 
 ## Results
 
-Accuracy, hmean and selected features for each classifier, *drXAI* configuration, univariate and multivariate datasets 
+Accuracy, hmean and selected features for each classifier of *drXAI* configuration, univariate and multivariate datasets 
 can be found in results directory as csv.
+
+## Data
+Used datasets, trained models, XAI results, feature selection and metric results are shared trough zenodo
+[link here](https://zenodo.org/records/16982285?preview=1&token=eyJhbGciOiJIUzUxMiJ9.eyJpZCI6IjRkMTdlZDdlLTM2ZjItNDY2Yy05OTRkLWZlOWZhOGU2ZWQ1MCIsImRhdGEiOnt9LCJyYW5kb20iOiJlMDg5ZTdhYjA5YWQwNmQ3NWFiMjRhZDllZTJjNTFjNSJ9.OlytUbb0ggcSjCiKQEOJlYbbH8rtH02bWPTEyGU3Hn5dX3sO_BE5wVRK7Xf-hJIviLYHYa6DfkJMJIw2IcFojQ)
 
 ### Plots 
 
@@ -90,7 +94,7 @@ datasets, 3 examples using the MiniRocket classifier and one using ConvTran.**  
 
 ## Code 
 
-Code developed using Python 3.10.16, all used libraries are listed in requirements.txt
+Code developed using Python 3.11.13, all used libraries are listed in requirements.txt
 
 The two executable files are:
 
