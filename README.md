@@ -109,9 +109,15 @@ Arguments:
 
 > explainer_results_dir : directory where to save classifiers and attributions info including related selection. Format is one file per dataset
 
+> classifier: classifier name is either hydra,miniRocket or ConvTran
+
+> batch_size: batch size for training and explaining
+
 > random_seed : random seed to be used for reproducibility
 
 > --channel_selection : whether to perform channel selection or not (perform time point selection)
+
+> --time_points_selection: whether to perform time point selection
 
 ### compute_metrics.py
 To be used to trained new model(s), as described in the paper, and get metrics about them
@@ -124,6 +130,10 @@ Arguments:
 
 > dataset_dir : directory where datasets are located
 
+> classifier: classifier name is either hydra,miniRocket or ConvTran
+
+> batch_size: batch size for training and explaining
+
 > result_path : path where to store new accuracies
 
-> --elbow_selections_path : file path where elbow selections are saved
+> --elbow_selections_path : file path where elbow selections are saved (implicitly defining whether performing channel or time point selection
