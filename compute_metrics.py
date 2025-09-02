@@ -62,7 +62,6 @@ if __name__ == '__main__':
 	parser.add_argument("classifier", type=str,help="classifier name is either hydra,miniRocket or ConvTran")
 	parser.add_argument("batch_size", type=int,help="batch size for training and explaining")
 	parser.add_argument("result_file", type=str, help="file where to store new accuracies")
-	# TODO is this selection strategy between channel ad time point selection okay?
 	parser.add_argument("--elbow_selections", type=str,  nargs='?',default=None, help="optional argument."
 		"file path where elbow selections are saved, implicitly defining whether channel selection (provided) """
 			"or time point selection(not provided)")

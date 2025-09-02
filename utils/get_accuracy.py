@@ -30,7 +30,6 @@ def get_accuracies(original_data,save_models_path, selections,clf_name, batch_si
 
 		# get current selected channels
 		data  = deepcopy(original_data)
-		# TODO add comments here, generally review the whole script and delete wat is no longer necessary i.e. train_models list
 		if channel_selection:
 			data['train_set']['X'] = data['train_set']['X'][:,selection,:]
 			data['test_set']['X'] = data['test_set']['X'][:,selection,:]
@@ -38,8 +37,8 @@ def get_accuracies(original_data,save_models_path, selections,clf_name, batch_si
 			data['train_set']['X'] = extract_timePoints( data['train_set']['X'], selection )
 			data['test_set']['X'] = extract_timePoints( data['test_set']['X'], selection )
 
-		saved_models_path = os.path.join(save_models_path, "_".join((current_dataset,clf_name,exp_name))+".pth")
 
+		saved_models_path = os.path.join(save_models_path, "_".join((current_dataset,clf_name,exp_name))+".pth")
 		# train 5 times
 		for i in range(5):
 			star_time = timeit.default_timer()

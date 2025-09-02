@@ -22,7 +22,6 @@ def main(args):
 	channel_selection =  args.channel_selection
 	time_points_selection = args.time_points_selection
 	# only channel selection or time points can be selected
-	# TODO check at optional (--channel_selection) vs mandatory
 	assert channel_selection!= time_points_selection, "Only channel selection or time points can be selected"
 
 	print("performing channel selection") if channel_selection else print("performing time point selection")
