@@ -1,4 +1,6 @@
 import numpy as np
+import random
+import torch
 
 def extract_timePoints( data, selection):
 	new_data = []
@@ -6,6 +8,15 @@ def extract_timePoints( data, selection):
 		start, end = intervals.split(':')
 		new_data.append(data [ :,:,int(start):int(end) ] )
 	return np.concatenate(new_data,axis=-1)
+
+def set_seed(seed: int = 42):
+	"""Set random seeds for reproducibility"""
+	random.seed(seed)
+	np.random.seed(seed)
+	torch.manual_seed(seed)
+	if torch.cuda.is_available():
+		torch.cuda.manual_seed(seed)
+		torch.cuda.manual_seed_all(seed)
 
 def get_computed_AI_selections(saliency_map_dict, selection_dict, accuracies, info, channel_sel):
 

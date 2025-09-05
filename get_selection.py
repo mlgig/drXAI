@@ -1,6 +1,7 @@
 import timeit
 import argparse
 
+from utils.helpers import set_seed
 from utils.data_utils import *
 from utils.trainers import *
 from drXAI import drXAI
@@ -28,10 +29,10 @@ def main(args):
 
 	# get device, set random seed and instantiate result data structure
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	torch.manual_seed(random_seed)
+	set_seed(random_seed)
 
 	# load datasets
-	for current_dataset in sorted(os.listdir(args.dataset_dir ) ):
+	for current_dataset in sorted(os.listdir(args.dataset_dir ) )[2:]:
 
 		results_path = os.path.join(results_dir, "_".join( (current_dataset ,"results") ) )+".npz"
 		dataset_dir =  os.path.join(base_path,current_dataset)
@@ -58,27 +59,31 @@ def main(args):
 
 		################################ explain ###########################################
 
-		# get explaining set's features and labels
-		X2explain , labels = data['train_set']['X'] , data['train_set']['y']
+		print(data['train_set']['X'].shape)
+		# get explaining set i.e. test set in case of small datasets or subset in case of big datasets
+		X2explain , labels = sample_instances(data['train_set']['X'] , data['train_set']['y'], 50)
+		print(data['train_set']['X'].shape)
 
 		backgrounds2use = ["zeros","SMOTE","Proto"]	#hardcoded backgrounds to be used
+
 		for b_name in backgrounds2use:
+
 			# for each background initialise result dict, then explain
 			results[model_name][b_name] = {}
-
 			key_prefix = 'selected_channels_' if channel_selection else 'selected_timePoints_'
 
+			# hardcoded explainers to be used i.e. the ones included in the study
 			explainers2use = [ "Feature_Ablation", "SHAP"] if channel_selection  else  \
-				["Feature_Ablation", "SHAP","WindowSHAP"]		# hardcoded explainers to be used
+				["Feature_Ablation", "SHAP","WindowSHAP"]
 
-			for e_name in explainers2use:
+			for exp_name in explainers2use:
 				drxai = drXAI(channel_selection=channel_selection, classifier=model,dataset_X=X2explain,
-							  dataset_y=labels, explainer_name=e_name, background_name=b_name,
+							  dataset_y=labels, explainer_name=exp_name, background_name=b_name,
 							  explainer_kwargs={'batch_size':batch_size})
 				selections, attribution,exp_time = drxai.get_selection()
 
 				# save saliency_maps, selections and other info into data structure
-				results[model_name][b_name][e_name] = {
+				results[model_name][b_name][exp_name] = {
 					key_prefix+'averageFirst' : selections[0],
 					key_prefix+'absoluteFirst' : selections[1],
 					key_prefix+'intersection' : list(

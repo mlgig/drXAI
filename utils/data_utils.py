@@ -1,11 +1,46 @@
 import os
 import numpy as np
+
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader
 from aeon.datasets import load_from_ts_file
-
 from models.ConvTran.utils import dataset_class
+
+
+def sample_instances(X , y, n):
+	"""
+	sample instances from dataset (test set
+	:param X:	samples
+	:param y: 	labels
+	:param n: 	number of instances to sample per class
+	:return:
+	"""
+
+	# check the unique values in label set
+	class_names, class_index, class_numbs = np.unique(y,return_inverse=True ,return_counts=True)
+
+	# group instances by groups
+	X_grouped = [ X[ np.where(class_index==i)[0] ] for i in range(class_numbs.shape[0]) ]
+	y_grouped = [ y[ np.where(class_index==i)[0] ] for i in range(class_numbs.shape[0]) ]
+
+	X = []
+	y = []
+
+	for current_class_instances, current_label in zip(X_grouped,y_grouped):
+
+		assert current_class_instances.shape[0]==current_label.shape[0]
+		# for each class sample up to n elements
+		n_instances = current_class_instances.shape[0]
+		selected = np.random.randint(low=0, high=n_instances,size=n) if n_instances>n else np.array([i for i in range(n_instances)])
+
+		X.append(current_class_instances[selected]) ; y.append(current_label[selected])
+
+	# from lists to arrays
+	X = np.concatenate(X); y = np.concatenate(y)
+
+	return X, y
+
 
 def load_datasets(dataset_dir, current_dataset ):
 
